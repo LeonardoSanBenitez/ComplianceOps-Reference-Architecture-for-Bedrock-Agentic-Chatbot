@@ -1,0 +1,21 @@
+# compliance-ops-bedrock Python dependencies
+# Pinned for reproducibility; update deliberately
+
+# AWS SDK
+boto3==1.38.0
+
+# OSCAL tooling — evaluated as primary OSCAL library
+# (compliance-trestle: IBM/CNCF, designed for CI pipelines)
+# Pinned to latest stable; evaluate upgrade path before changing
+compliance-trestle==3.6.0
+
+# Report generation
+jinja2==3.1.4
+pyyaml==6.0.2
+
+# Validation and type support
+pydantic==2.11.3
+
+# Type checking (dev only — not runtime)
+mypy==1.15.0
+types-PyYAML==6.0.12.20250402

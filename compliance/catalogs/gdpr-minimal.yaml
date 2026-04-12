@@ -1,0 +1,279 @@
+catalog:
+  uuid: a1b2c3d4-0001-0001-0001-000000000001
+  metadata:
+    title: GDPR Minimal Control Catalog — compliance-ops-bedrock demo
+    last-modified: "2026-04-12T00:00:00Z"
+    version: "0.1.0"
+    oscal-version: "1.1.2"
+    remarks: |
+      Minimal control catalog covering GDPR obligations most relevant to an
+      AI chatbot application handling end-user queries. Scope: the
+      compliance-ops-bedrock demo application only (not the organisation).
+      Articles selected: 5, 13/14, 17, 25, 28, 30, 32, 33, 35.
+      This catalog must be adapted before use in a production compliance programme.
+
+  groups:
+    - id: gdpr-principles
+      title: "Data Processing Principles (Article 5)"
+      controls:
+        - id: gdpr-5-1-a
+          title: Lawfulness, fairness and transparency of processing
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 5(1)(a)"
+          parts:
+            - id: gdpr-5-1-a-stmt
+              name: statement
+              prose: |
+                Personal data shall be processed lawfully, fairly and in a transparent
+                manner in relation to the data subject.
+            - id: gdpr-5-1-a-guidance
+              name: guidance
+              prose: |
+                For a chatbot: the legal basis for processing conversation data must be
+                identified (Art. 6). Users must be informed of processing before or at the
+                time data is collected. No hidden profiling or secondary use without basis.
+
+        - id: gdpr-5-1-b
+          title: Purpose limitation
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 5(1)(b)"
+          parts:
+            - id: gdpr-5-1-b-stmt
+              name: statement
+              prose: |
+                Personal data shall be collected for specified, explicit and legitimate
+                purposes and not further processed in a manner that is incompatible
+                with those purposes.
+            - id: gdpr-5-1-b-guidance
+              name: guidance
+              prose: |
+                Conversation logs collected for quality improvement must not be used for
+                advertising profiling. Each secondary use requires its own legal basis or
+                explicit purpose specification.
+
+        - id: gdpr-5-1-e
+          title: Storage limitation
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 5(1)(e)"
+          parts:
+            - id: gdpr-5-1-e-stmt
+              name: statement
+              prose: |
+                Personal data shall be kept in a form which permits identification of data
+                subjects for no longer than is necessary for the purposes for which the
+                personal data are processed.
+            - id: gdpr-5-1-e-guidance
+              name: guidance
+              prose: |
+                A retention policy must exist and be enforced. For chatbot conversations:
+                define maximum retention period, automate deletion (e.g., S3 lifecycle
+                policy, DynamoDB TTL), and document the rationale.
+
+        - id: gdpr-5-1-f
+          title: Integrity and confidentiality
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 5(1)(f)"
+          parts:
+            - id: gdpr-5-1-f-stmt
+              name: statement
+              prose: |
+                Personal data shall be processed in a manner that ensures appropriate
+                security, including protection against unauthorised or unlawful processing
+                and against accidental loss, destruction or damage, using appropriate
+                technical or organisational measures.
+            - id: gdpr-5-1-f-guidance
+              name: guidance
+              prose: |
+                Encryption at rest and in transit, access controls, audit logging. Maps
+                to Article 32 technical measures. For AWS: KMS, TLS, IAM least privilege,
+                CloudTrail.
+
+    - id: gdpr-transparency
+      title: "Transparency and Information Obligations (Articles 13-14)"
+      controls:
+        - id: gdpr-13
+          title: Information to be provided where personal data are collected from the data subject
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 13"
+          parts:
+            - id: gdpr-13-stmt
+              name: statement
+              prose: |
+                Where personal data relating to a data subject are collected from the data
+                subject, the controller shall provide the data subject at the time of
+                collection with: identity of controller, purposes and legal basis,
+                legitimate interests if applicable, recipients, retention periods,
+                existence of rights.
+            - id: gdpr-13-guidance
+              name: guidance
+              prose: |
+                A privacy notice must be displayed before or during first use of the
+                chatbot. The notice must be specific enough to cover chatbot-specific
+                processing (conversation storage, LLM inference, RAG knowledge base use).
+
+    - id: gdpr-data-subject-rights
+      title: "Data Subject Rights (Article 17)"
+      controls:
+        - id: gdpr-17
+          title: Right to erasure
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 17"
+          parts:
+            - id: gdpr-17-stmt
+              name: statement
+              prose: |
+                The data subject shall have the right to obtain erasure of personal data
+                without undue delay where one of the grounds in Art. 17(1) applies.
+            - id: gdpr-17-guidance
+              name: guidance
+              prose: |
+                A process must exist to identify and delete all personal data associated
+                with a given data subject across all systems (DynamoDB, S3 conversation
+                logs, knowledge base, CloudWatch logs). This process must be documented
+                and tested.
+
+    - id: gdpr-privacy-by-design
+      title: "Data Protection by Design and Default (Article 25)"
+      controls:
+        - id: gdpr-25
+          title: Data protection by design and by default
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 25"
+          parts:
+            - id: gdpr-25-stmt
+              name: statement
+              prose: |
+                Taking into account the state of the art, the controller shall implement
+                appropriate technical and organisational measures designed to implement
+                data-protection principles effectively and to integrate the necessary
+                safeguards into the processing.
+            - id: gdpr-25-guidance
+              name: guidance
+              prose: |
+                Architectural decisions should default to minimum data collection. For the
+                chatbot: do not log conversation content unless explicitly required; if
+                logged, pseudonymise where possible; default to shortest retention period.
+
+    - id: gdpr-processor
+      title: "Processor Obligations (Article 28)"
+      controls:
+        - id: gdpr-28
+          title: Processor obligations and Data Processing Agreement
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 28"
+          parts:
+            - id: gdpr-28-stmt
+              name: statement
+              prose: |
+                Where processing is to be carried out on behalf of a controller, the
+                controller shall only use processors providing sufficient guarantees to
+                implement appropriate technical and organisational measures.
+            - id: gdpr-28-guidance
+              name: guidance
+              prose: |
+                AWS is a data processor when processing personal data in Bedrock, S3, etc.
+                A valid DPA with AWS must be in place (covered by AWS Customer Agreement +
+                AWS GDPR DPA). The specific sub-processors used (Bedrock, DynamoDB, etc.)
+                must be listed. AWS model providers (Anthropic, Mistral) must also be
+                assessed.
+
+    - id: gdpr-records
+      title: "Records of Processing Activities (Article 30)"
+      controls:
+        - id: gdpr-30
+          title: Records of processing activities (ROPA)
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 30"
+          parts:
+            - id: gdpr-30-stmt
+              name: statement
+              prose: |
+                Each controller shall maintain a record of processing activities (ROPA)
+                under its responsibility.
+            - id: gdpr-30-guidance
+              name: guidance
+              prose: |
+                The ROPA entry for this chatbot must specify: name and contact details of
+                controller, purposes, data subjects and data categories, recipients,
+                transfers, retention periods, security measures. This is a mandatory
+                document even for demo systems if real personal data is processed.
+
+    - id: gdpr-security
+      title: "Security of Processing (Article 32)"
+      controls:
+        - id: gdpr-32
+          title: Security of processing
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 32"
+          parts:
+            - id: gdpr-32-stmt
+              name: statement
+              prose: |
+                Taking into account the state of the art and the risks, the controller
+                shall implement appropriate technical and organisational measures to ensure
+                a level of security appropriate to the risk, including encryption,
+                pseudonymisation, confidentiality, integrity, availability, and resilience.
+            - id: gdpr-32-guidance
+              name: guidance
+              prose: |
+                Technical evidence: encryption at rest (KMS), TLS in transit, IAM least
+                privilege, MFA on admin accounts, CloudTrail audit log, GuardDuty threat
+                detection. Organisational evidence: incident response procedure, access
+                review schedule.
+
+    - id: gdpr-breach
+      title: "Personal Data Breach Notification (Article 33)"
+      controls:
+        - id: gdpr-33
+          title: Notification of a personal data breach to the supervisory authority
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 33"
+          parts:
+            - id: gdpr-33-stmt
+              name: statement
+              prose: |
+                In the case of a personal data breach, the controller shall notify the
+                competent supervisory authority without undue delay and, where feasible,
+                not later than 72 hours after having become aware of it.
+            - id: gdpr-33-guidance
+              name: guidance
+              prose: |
+                An incident response procedure must exist covering: detection (GuardDuty,
+                CloudTrail alerts), assessment of breach scope, 72-hour notification
+                decision process, documentation of the breach, communication to DPA.
+                GuardDuty + SNS alerts provide automated detection evidence.
+
+    - id: gdpr-dpia
+      title: "Data Protection Impact Assessment (Article 35)"
+      controls:
+        - id: gdpr-35
+          title: Data protection impact assessment (DPIA)
+          props:
+            - name: regulation-reference
+              value: "GDPR Art. 35"
+          parts:
+            - id: gdpr-35-stmt
+              name: statement
+              prose: |
+                Where a type of processing is likely to result in a high risk to the rights
+                and freedoms of natural persons, the controller shall carry out an assessment
+                of the impact of the envisaged processing operations on the protection of
+                personal data.
+            - id: gdpr-35-guidance
+              name: guidance
+              prose: |
+                AI chatbots that process personal data may trigger DPIA requirements,
+                particularly when using automated decision-making, systematic processing,
+                or processing of special categories. The controller must assess whether
+                a DPIA is required and document the decision either way.

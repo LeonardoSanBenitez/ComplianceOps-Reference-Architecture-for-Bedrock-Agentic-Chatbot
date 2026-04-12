@@ -205,3 +205,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Terraform
+infra/terraform/.terraform/
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
+infra/terraform/*.tfplan
+
+# Generated report (not committed — served from S3)
+report/
+
+# Sensitive evidence (can contain account metadata)
+# Note: evidence/automated/ IS committed for now (demo/prototype)
+# Revisit before production use
+
+# Local secrets
+*.env
+.secrets

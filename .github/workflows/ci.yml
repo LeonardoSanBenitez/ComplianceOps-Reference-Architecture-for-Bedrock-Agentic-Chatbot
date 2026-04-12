@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-type-check:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install mypy pyyaml jinja2 pydantic types-PyYAML boto3
+
+      - name: mypy
+        run: mypy scripts/
+
+  validate-oscal-yaml:
+    name: Validate OSCAL YAML structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install pyyaml
+
+      - name: Validate catalog YAML can be parsed
+        run: |
+          python - <<'EOF'
+          import yaml
+          from pathlib import Path
+          errors = []
+          for fpath in Path("compliance/catalogs").glob("*.yaml"):
+              with open(fpath) as f:
+                  doc = yaml.safe_load(f)
+              catalog = doc.get("catalog")
+              if not catalog:
+                  errors.append(f"{fpath}: missing top-level 'catalog' key")
+              elif not catalog.get("groups"):
+                  errors.append(f"{fpath}: catalog has no groups")
+          if errors:
+              for e in errors: print(f"ERROR: {e}")
+              raise SystemExit(1)
+          print(f"OK: {len(list(Path('compliance/catalogs').glob('*.yaml')))} catalog(s) valid")
+          EOF
+
+      - name: Validate attestation YAML can be parsed
+        run: |
+          python - <<'EOF'
+          import yaml
+          from pathlib import Path
+          errors = []
+          for fpath in Path("attestations").glob("*.yaml"):
+              if fpath.name == "schema.yaml":
+                  continue
+              with open(fpath) as f:
+                  doc = yaml.safe_load(f)
+              for att in doc.get("attestations", []):
+                  required = ["id", "control-id", "status", "decision", "justification", "reviewed-by", "reviewed-at"]
+                  for field in required:
+                      if field not in att:
+                          errors.append(f"{fpath}:{att.get('id','?')}: missing field '{field}'")
+          if errors:
+              for e in errors: print(f"ERROR: {e}")
+              raise SystemExit(1)
+          print(f"OK: attestation YAML valid")
+          EOF
+
+  generate-report-dry-run:
+    name: Report generation dry run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install pyyaml jinja2 boto3
+
+      - name: Generate report (no AWS credentials needed for dry run)
+        run: python scripts/generate_report.py --output /tmp/report.html
+
+      - name: Verify report was generated
+        run: |
+          if [ ! -f /tmp/report.html ]; then
+            echo "ERROR: report not generated"
+            exit 1
+          fi
+          echo "Report size: $(wc -c < /tmp/report.html) bytes"
+          grep -q "compliance-ops-bedrock" /tmp/report.html && echo "OK: report content check passed"

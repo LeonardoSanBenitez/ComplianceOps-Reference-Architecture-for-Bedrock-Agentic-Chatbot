@@ -1,0 +1,41 @@
+{
+  "schema_version": "1",
+  "collector_id": "cloudtrail-status",
+  "description": "CloudTrail configuration. Evidence for audit logging (GDPR Art. 5(1)(f), 32).",
+  "collected_at": "2026-04-12T21:26:53Z",
+  "status": "collected",
+  "controls": ["gdpr-5-1-f", "gdpr-32"],
+  "data": {
+    "trails": {
+    "trailList": [
+        {
+            "Name": "management-events",
+            "S3BucketName": "aws-cloudtrail-logs-725533536670-804ebb20",
+            "IncludeGlobalServiceEvents": true,
+            "IsMultiRegionTrail": true,
+            "HomeRegion": "us-east-1",
+            "TrailARN": "arn:aws:cloudtrail:us-east-1:725533536670:trail/management-events",
+            "LogFileValidationEnabled": true,
+            "CloudWatchLogsLogGroupArn": "arn:aws:logs:us-east-1:725533536670:log-group:/aws/cloudtrail/management-events:*",
+            "CloudWatchLogsRoleArn": "arn:aws:iam::725533536670:role/cloudtrail-cloudwatch-logs-role",
+            "HasCustomEventSelectors": true,
+            "HasInsightSelectors": false,
+            "IsOrganizationTrail": false
+        }
+    ]
+},
+    "trail_status": {
+    "IsLogging": true,
+    "LatestDeliveryTime": "2026-04-12T23:25:58.169000+02:00",
+    "StartLoggingTime": "2022-01-13T01:44:52.258000+01:00",
+    "LatestCloudWatchLogsDeliveryTime": "2026-04-12T23:25:21.621000+02:00",
+    "LatestDigestDeliveryTime": "2026-04-12T23:09:06.697000+02:00",
+    "LatestDeliveryAttemptTime": "2026-04-12T21:25:58Z",
+    "LatestNotificationAttemptTime": "",
+    "LatestNotificationAttemptSucceeded": "",
+    "LatestDeliveryAttemptSucceeded": "2026-04-12T21:25:58Z",
+    "TimeLoggingStarted": "2022-01-13T00:44:52Z",
+    "TimeLoggingStopped": ""
+}
+  }
+}

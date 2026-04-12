@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "compliance-ops-bedrock"
+version = "0.1.0"
+description = "RegOps reference architecture for AWS Bedrock agentic chatbot"
+requires-python = ">=3.11"
+dependencies = [
+    "boto3>=1.38",
+    "jinja2>=3.1",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+files = ["scripts/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

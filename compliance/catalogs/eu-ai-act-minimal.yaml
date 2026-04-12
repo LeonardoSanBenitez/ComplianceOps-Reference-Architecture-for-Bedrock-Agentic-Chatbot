@@ -1,0 +1,223 @@
+catalog:
+  uuid: a1b2c3d4-0002-0002-0002-000000000002
+  metadata:
+    title: EU AI Act Minimal Control Catalog — compliance-ops-bedrock demo (Limited-Risk GPAI chatbot)
+    last-modified: "2026-04-12T00:00:00Z"
+    version: "0.1.0"
+    oscal-version: "1.1.2"
+    remarks: |
+      Minimal control catalog covering EU AI Act obligations for a
+      General-Purpose AI (GPAI) chatbot operating at limited-risk tier
+      (transparency obligations under Title IV, not high-risk Annex III).
+      Assumes: chatbot is not used for CV screening, credit scoring, law
+      enforcement, or other Annex III use cases. If the use case changes,
+      this catalog must be replaced with a high-risk catalog.
+      Articles covered: 4, 50, 52 (renumbered in final text), Annex IV
+      documentation requirements (adapted).
+      Note: EU AI Act came into force August 2024; full applicability
+      for GPAI systems from August 2025. This catalog reflects the
+      final text as of 2026.
+
+  groups:
+    - id: euaia-literacy
+      title: "AI Literacy (Article 4)"
+      controls:
+        - id: euaia-4
+          title: AI literacy obligations for providers and deployers
+          props:
+            - name: regulation-reference
+              value: "EU AI Act Art. 4"
+            - name: applicability-tier
+              value: "limited-risk"
+          parts:
+            - id: euaia-4-stmt
+              name: statement
+              prose: |
+                Providers and deployers of AI systems shall take measures to ensure, to
+                their best extent, a sufficient level of AI literacy of their staff and
+                other persons dealing with the operation and use of AI systems on their
+                behalf.
+            - id: euaia-4-guidance
+              name: guidance
+              prose: |
+                Evidence: training records showing that operators and relevant staff have
+                completed AI literacy training. For a small team, this can be documented
+                acknowledgement of AI system capabilities and limitations. The chatbot
+                should include in its system prompt or documentation a clear statement
+                of its capabilities, limitations, and intended use.
+
+    - id: euaia-transparency
+      title: "Transparency Obligations for Limited-Risk AI (Article 50)"
+      controls:
+        - id: euaia-50-1
+          title: Transparency to users — chatbot disclosure
+          props:
+            - name: regulation-reference
+              value: "EU AI Act Art. 50(1)"
+            - name: applicability-tier
+              value: "limited-risk"
+          parts:
+            - id: euaia-50-1-stmt
+              name: statement
+              prose: |
+                Providers of AI systems intended to interact directly with natural persons
+                shall ensure that natural persons are informed that they are interacting
+                with an AI system, unless this is obvious from the circumstances and context
+                of use.
+            - id: euaia-50-1-guidance
+              name: guidance
+              prose: |
+                The chatbot must clearly identify itself as an AI system before or at the
+                start of any interaction. This can be: a UI label ("You are chatting with
+                an AI assistant"), a system message visible to the user, or equivalent.
+                The disclosure must be prominent, not buried in terms of service.
+                Technical evidence: screenshot or configuration showing the disclosure
+                mechanism; system prompt confirming the chatbot is instructed to identify
+                itself if asked.
+
+        - id: euaia-50-2
+          title: Transparency — AI-generated content detection
+          props:
+            - name: regulation-reference
+              value: "EU AI Act Art. 50(2)"
+            - name: applicability-tier
+              value: "limited-risk"
+          parts:
+            - id: euaia-50-2-stmt
+              name: statement
+              prose: |
+                Providers of AI systems that generate synthetic audio, image, video or text
+                content shall ensure outputs are marked in a machine-readable format and
+                detectable as artificially generated or manipulated.
+            - id: euaia-50-2-guidance
+              name: guidance
+              prose: |
+                For a text-only chatbot: implement response metadata tagging indicating
+                AI-generated content. This can be HTTP response headers, JSON metadata
+                fields, or equivalent. The marking must be technically robust and not
+                easily removable by downstream processing.
+
+    - id: euaia-gpai
+      title: "General-Purpose AI Model Obligations (Article 52 / Title VIII)"
+      controls:
+        - id: euaia-52-1
+          title: GPAI technical documentation
+          props:
+            - name: regulation-reference
+              value: "EU AI Act Art. 52, Annex XI"
+            - name: applicability-tier
+              value: "gpai-provider"
+          parts:
+            - id: euaia-52-1-stmt
+              name: statement
+              prose: |
+                Providers of general-purpose AI models shall draw up and keep up-to-date
+                technical documentation before placing the model on the market or putting
+                it into service, including information about training data, training
+                methodology, model capabilities and limitations, intended and foreseeable
+                misuse, and evaluation results.
+            - id: euaia-52-1-guidance
+              name: guidance
+              prose: |
+                For a deployer using a third-party GPAI model (Amazon Nova, Mistral, etc.):
+                the upstream model provider (Amazon, Mistral AI) is responsible for this
+                documentation. As a deployer, evidence required is: (1) confirmation that
+                the chosen model provider has EU AI Act compliance documentation available,
+                (2) record of model selection decision and version in use, (3) assessment
+                of whether the chosen model is appropriate for the intended use case.
+
+        - id: euaia-52-2
+          title: GPAI copyright policy
+          props:
+            - name: regulation-reference
+              value: "EU AI Act Art. 53(1)(c)"
+            - name: applicability-tier
+              value: "gpai-provider"
+          parts:
+            - id: euaia-52-2-stmt
+              name: statement
+              prose: |
+                Providers of general-purpose AI models shall put in place a policy to
+                comply with Union law on copyright and related rights, and in particular
+                to identify and comply with a rights reservation expressed pursuant to
+                Article 4(3) of Directive (EU) 2019/790.
+            - id: euaia-52-2-guidance
+              name: guidance
+              prose: |
+                As a deployer: confirm that the upstream model provider has a published
+                copyright policy for training data. For AWS Bedrock models: review
+                Amazon's and each model provider's published statements on training
+                data provenance and copyright compliance.
+
+    - id: euaia-deployer
+      title: "Deployer Obligations — Limited Risk"
+      controls:
+        - id: euaia-deployer-1
+          title: Human oversight and monitoring
+          props:
+            - name: regulation-reference
+              value: "EU AI Act Art. 26 (adapted for limited risk)"
+            - name: applicability-tier
+              value: "limited-risk"
+          parts:
+            - id: euaia-deployer-1-stmt
+              name: statement
+              prose: |
+                Deployers of AI systems shall use AI systems in accordance with the
+                instructions for use provided by the provider and take appropriate
+                technical and organisational measures to ensure they can oversee the
+                effective operation of the AI system in accordance with those instructions.
+            - id: euaia-deployer-1-guidance
+              name: guidance
+              prose: |
+                Evidence: documented human oversight procedures (who monitors the chatbot,
+                how often, what they look for), feedback mechanism for users to flag
+                problematic outputs, process for reviewing flagged interactions, escalation
+                path. Bedrock Guardrails settings provide automated oversight evidence.
+
+        - id: euaia-deployer-2
+          title: Use case risk classification
+          props:
+            - name: regulation-reference
+              value: "EU AI Act Art. 6, Annex III"
+            - name: applicability-tier
+              value: "limited-risk"
+          parts:
+            - id: euaia-deployer-2-stmt
+              name: statement
+              prose: |
+                The deployer shall assess and document whether the AI system falls within
+                the high-risk categories defined in Annex III of the EU AI Act, and
+                maintain that classification as the system evolves.
+            - id: euaia-deployer-2-guidance
+              name: guidance
+              prose: |
+                Required evidence: a written risk classification decision stating why the
+                chatbot is limited-risk (not high-risk). The decision must reference the
+                specific Annex III categories and explain why they do not apply. This
+                decision must be reviewed if the intended use case changes. For this
+                demo: the chatbot answers questions about its own architecture and
+                compliance — no employment, credit, law enforcement, or critical
+                infrastructure context.
+
+        - id: euaia-deployer-3
+          title: Registration in EU database (where required)
+          props:
+            - name: regulation-reference
+              value: "EU AI Act Art. 49, 71"
+            - name: applicability-tier
+              value: "limited-risk"
+          parts:
+            - id: euaia-deployer-3-stmt
+              name: statement
+              prose: |
+                Providers of high-risk AI systems shall register the system in the EU
+                AI database before placing it on the market. Limited-risk systems are
+                not subject to registration unless classified as GPAI with systemic risk.
+            - id: euaia-deployer-3-guidance
+              name: guidance
+              prose: |
+                For this demo (limited-risk): registration is NOT required. This control
+                exists to explicitly document that determination. Evidence: the risk
+                classification decision (euaia-deployer-2) confirming limited-risk status
+                and noting that Art. 49 registration is not applicable.

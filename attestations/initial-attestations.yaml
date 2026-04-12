@@ -1,0 +1,192 @@
+# Initial attestations for compliance-ops-bedrock demo system
+# Status: prototype / exploration phase
+# These attestations are NOT authoritative compliance evidence.
+# They serve to test the schema, the tooling, and the reporting pipeline.
+#
+# Last updated: 2026-04-12
+
+attestations:
+
+  # ── GDPR ─────────────────────────────────────────────────────────────────
+
+  - id: gdpr-5-1-a-lawfulness-001
+    control-id: gdpr-5-1-a
+    status: partial
+    decision: >
+      Processing of conversation data in the demo system has a tentative legal
+      basis (legitimate interest) but a full LIA has not been completed.
+    justification: >
+      The demo system processes only test/synthetic conversations with no
+      real user personal data at this stage. The legal basis question is
+      nevertheless flagged because the architecture must be designed to
+      accommodate it. For a production deployment, the controller would need
+      to identify the lawful basis (most likely: legitimate interest under
+      Art. 6(1)(f) for internal quality monitoring, or consent for any
+      user-facing deployment). This attestation will be updated when the
+      privacy notice and LIA are completed.
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+    compensating-controls:
+      - Only synthetic/test data used in current prototype
+      - No real user personal data ingested
+
+  - id: gdpr-5-1-e-retention-001
+    control-id: gdpr-5-1-e
+    status: not-satisfied
+    decision: >
+      No retention policy is currently implemented for conversation logs.
+    justification: >
+      The prototype does not yet have conversation log storage implemented.
+      This is a known gap to be addressed before any real data is processed.
+      The Terraform configuration will include S3 lifecycle policies and
+      DynamoDB TTL settings. The retention period will be decided based on
+      the use case, likely 30 days for quality monitoring with no longer
+      period justifiable without additional legal basis.
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+
+  - id: gdpr-28-dpa-001
+    control-id: gdpr-28
+    status: satisfied
+    decision: >
+      AWS is used as the primary data processor and is covered by a valid
+      DPA under the AWS Customer Agreement.
+    justification: >
+      Amazon Web Services, Inc. offers a GDPR Data Processing Addendum
+      available at aws.amazon.com/agreement, which is incorporated by
+      reference into the AWS Customer Agreement. The account owner has
+      accepted the AWS Customer Agreement. The specific sub-processors
+      used by this system (Bedrock, S3, CloudTrail, DynamoDB) are listed
+      in AWS's sub-processor list. Model providers accessed through Bedrock
+      (Amazon, Mistral AI) are sub-processors of AWS and covered by AWS's
+      agreements. No additional DPA is required for this demo system using
+      only AWS-native services.
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+    evidence-refs:
+      - https://aws.amazon.com/agreement  # AWS Customer Agreement (external)
+
+  - id: gdpr-32-security-001
+    control-id: gdpr-32
+    status: partial
+    decision: >
+      Core security controls are in place at the account level; application-level
+      encryption and access controls are defined but not yet fully deployed.
+    justification: >
+      Account-level controls implemented: GuardDuty threat detection,
+      CloudTrail audit logging with 90-day retention, IAM password policy
+      (16+ chars, MFA on admin), S3 public access block (account-level),
+      billing alarms. Application-level controls are designed (KMS for S3,
+      least-privilege IAM roles for Lambda/Bedrock) but not yet deployed
+      because the application Terraform resources are not yet provisioned.
+      This is expected in the prototype phase. Evidence available:
+      account-level security posture in evidence/automated/.
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+    evidence-refs:
+      - evidence/automated/guardduty-status.json
+      - evidence/automated/cloudtrail-status.json
+      - evidence/automated/iam-password-policy.json
+    compensating-controls:
+      - No real personal data processed yet
+      - Account-level GuardDuty active
+
+  - id: gdpr-33-incident-response-001
+    control-id: gdpr-33
+    status: partial
+    decision: >
+      Automated detection is in place; formal 72-hour notification procedure
+      is not yet documented.
+    justification: >
+      GuardDuty MEDIUM+ findings are automatically routed to SNS
+      (zoo-security-alerts topic) via EventBridge rule. This provides
+      automated detection capability. However, there is no documented
+      procedure for: (1) assessing whether a finding constitutes a personal
+      data breach, (2) deciding whether to notify the DPA, (3) executing
+      the 72-hour timeline. A procedure document is needed before any
+      real personal data is processed. The missing procedure is logged as
+      an action item.
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+    evidence-refs:
+      - evidence/automated/guardduty-status.json
+    compensating-controls:
+      - Automated GuardDuty detection + SNS alerting operational
+      - No real personal data processed yet
+
+  - id: gdpr-35-dpia-001
+    control-id: gdpr-35
+    status: not-applicable
+    decision: >
+      A DPIA is not required for this demo system in its current form.
+    justification: >
+      The current system processes only synthetic/test data. No real personal
+      data is ingested. However, this determination must be revisited when
+      (if) real user data is processed. Factors that might trigger a DPIA:
+      systematic processing of conversation data at scale, integration with
+      other data sources, use by a public authority, or use in contexts
+      involving special categories of data. The current use case (demo
+      chatbot answering questions about its own architecture) does not
+      meet any of the Art. 35(3) automatic DPIA triggers.
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+
+  # ── EU AI Act ─────────────────────────────────────────────────────────────
+
+  - id: euaia-deployer-2-risk-class-001
+    control-id: euaia-deployer-2
+    status: satisfied
+    decision: >
+      The compliance-ops-bedrock chatbot is classified as a limited-risk AI
+      system under the EU AI Act. It is not a high-risk system.
+    justification: >
+      Annex III of the EU AI Act defines high-risk AI systems in 8 categories.
+      This chatbot: (1) is not used in critical infrastructure, (2) is not
+      used in education or vocational training decisions, (3) is not used for
+      employment or worker management, (4) is not used for access to essential
+      private or public services (no credit scoring, no social benefits
+      decisions), (5) is not used in law enforcement, (6) is not used in
+      migration or asylum decisions, (7) is not used in administration of
+      justice, (8) is not used in democratic processes. The chatbot's sole
+      purpose is to answer questions about its own architecture and compliance
+      posture for demonstration purposes. This classification must be reviewed
+      if the intended use changes.
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+
+  - id: euaia-50-1-disclosure-001
+    control-id: euaia-50-1
+    status: not-satisfied
+    decision: >
+      The chatbot UI does not yet exist; the AI disclosure requirement will be
+      implemented in the UI layer.
+    justification: >
+      This is a known open item. When the chat interface is built (next sprint),
+      it must include a visible label identifying the system as an AI assistant.
+      The Bedrock agent system prompt will also include an instruction to
+      identify itself as an AI if directly asked. The disclosure must appear
+      before the first user interaction.
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+
+  - id: euaia-52-1-gpai-docs-001
+    control-id: euaia-52-1
+    status: partial
+    decision: >
+      Technical documentation for the GPAI model (Amazon Nova) is available
+      from AWS; deployer-side model selection documentation is incomplete.
+    justification: >
+      Amazon publishes model cards and capability documentation for Nova
+      models (us-east-1). As a deployer, we are not responsible for the
+      upstream model provider's Art. 52/53 obligations. However, we must
+      document: which model we selected, why, what its known limitations are,
+      and what Guardrails configurations we applied. This documentation is
+      partially captured in this attestation file; a formal model selection
+      record will be created when the Bedrock Agent is deployed. Model
+      selected for demo: amazon.nova-micro-v1:0 (lowest cost, sufficient
+      for demo purposes; no special capabilities or risks beyond standard
+      text generation).
+    reviewed-by: Priya (principal engineer)
+    reviewed-at: "2026-04-12T00:00:00Z"
+    evidence-refs:
+      - evidence/automated/bedrock-model-list.json

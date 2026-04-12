@@ -1,0 +1,14 @@
+{
+  "schema_version": "1",
+  "collector_id": "s3-buckets",
+  "description": "S3 bucket inventory with encryption and access control status.",
+  "collected_at": "2026-04-12T21:26:19Z",
+  "status": "collected",
+  "controls": ["gdpr-5-1-f", "gdpr-32"],
+  "data": {
+    "buckets": [
+    "aws-cloudtrail-logs-725533536670-804ebb20"
+],
+    "note": "See individual bucket files for encryption/versioning/pab details"
+  }
+}

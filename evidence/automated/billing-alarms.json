@@ -1,0 +1,64 @@
+{
+  "schema_version": "1",
+  "collector_id": "billing-alarms",
+  "description": "CloudWatch alarms status.",
+  "collected_at": "2026-04-12T21:26:35Z",
+  "status": "collected",
+  "controls": [],
+  "data": [
+    {
+        "name": "billing-critical-11usd",
+        "state": "OK",
+        "threshold": 11.0,
+        "comparison": "GreaterThanThreshold"
+    },
+    {
+        "name": "billing-warning-8usd",
+        "state": "OK",
+        "threshold": 8.0,
+        "comparison": "GreaterThanThreshold"
+    },
+    {
+        "name": "cis-cloudtrail-changes",
+        "state": "OK",
+        "threshold": 1.0,
+        "comparison": "GreaterThanOrEqualToThreshold"
+    },
+    {
+        "name": "cis-console-login-failures",
+        "state": "OK",
+        "threshold": 3.0,
+        "comparison": "GreaterThanOrEqualToThreshold"
+    },
+    {
+        "name": "cis-iam-policy-changes",
+        "state": "OK",
+        "threshold": 1.0,
+        "comparison": "GreaterThanOrEqualToThreshold"
+    },
+    {
+        "name": "cis-network-gateway-changes",
+        "state": "OK",
+        "threshold": 1.0,
+        "comparison": "GreaterThanOrEqualToThreshold"
+    },
+    {
+        "name": "cis-root-account-usage",
+        "state": "OK",
+        "threshold": 1.0,
+        "comparison": "GreaterThanOrEqualToThreshold"
+    },
+    {
+        "name": "cis-s3-bucket-policy-changes",
+        "state": "OK",
+        "threshold": 1.0,
+        "comparison": "GreaterThanOrEqualToThreshold"
+    },
+    {
+        "name": "cis-unauthorized-api-calls",
+        "state": "OK",
+        "threshold": 5.0,
+        "comparison": "GreaterThanOrEqualToThreshold"
+    }
+]
+}

@@ -1,0 +1,119 @@
+{
+  "schema_version": "1",
+  "collector_id": "guardduty-status",
+  "description": "GuardDuty detector status. Evidence for threat detection controls (GDPR Art. 32, 33).",
+  "collected_at": "2026-04-12T21:26:03Z",
+  "status": "collected",
+  "controls": ["gdpr-32", "gdpr-33"],
+  "data": {
+    "CreatedAt": "2026-04-12T10:57:42.550Z",
+    "FindingPublishingFrequency": "FIFTEEN_MINUTES",
+    "ServiceRole": "arn:aws:iam::725533536670:role/aws-service-role/guardduty.amazonaws.com/AWSServiceRoleForAmazonGuardDuty",
+    "Status": "ENABLED",
+    "UpdatedAt": "2026-04-12T10:57:42.550Z",
+    "DataSources": {
+        "CloudTrail": {
+            "Status": "ENABLED"
+        },
+        "DNSLogs": {
+            "Status": "ENABLED"
+        },
+        "FlowLogs": {
+            "Status": "ENABLED"
+        },
+        "S3Logs": {
+            "Status": "ENABLED"
+        },
+        "Kubernetes": {
+            "AuditLogs": {
+                "Status": "ENABLED"
+            }
+        },
+        "MalwareProtection": {
+            "ScanEc2InstanceWithFindings": {
+                "EbsVolumes": {
+                    "Status": "ENABLED"
+                }
+            },
+            "ServiceRole": "arn:aws:iam::725533536670:role/aws-service-role/malware-protection.guardduty.amazonaws.com/AWSServiceRoleForAmazonGuardDutyMalwareProtection"
+        }
+    },
+    "Tags": {},
+    "Features": [
+        {
+            "Name": "CLOUD_TRAIL",
+            "Status": "ENABLED",
+            "UpdatedAt": "2026-04-12T23:26:02+02:00"
+        },
+        {
+            "Name": "DNS_LOGS",
+            "Status": "ENABLED",
+            "UpdatedAt": "2026-04-12T23:26:02+02:00"
+        },
+        {
+            "Name": "FLOW_LOGS",
+            "Status": "ENABLED",
+            "UpdatedAt": "2026-04-12T23:26:02+02:00"
+        },
+        {
+            "Name": "S3_DATA_EVENTS",
+            "Status": "ENABLED",
+            "UpdatedAt": "2026-04-12T12:57:42+02:00"
+        },
+        {
+            "Name": "EKS_AUDIT_LOGS",
+            "Status": "ENABLED",
+            "UpdatedAt": "2026-04-12T12:57:42+02:00"
+        },
+        {
+            "Name": "EBS_MALWARE_PROTECTION",
+            "Status": "ENABLED",
+            "UpdatedAt": "2026-04-12T12:57:42+02:00"
+        },
+        {
+            "Name": "RDS_LOGIN_EVENTS",
+            "Status": "ENABLED",
+            "UpdatedAt": "2026-04-12T12:57:42+02:00"
+        },
+        {
+            "Name": "EKS_RUNTIME_MONITORING",
+            "Status": "DISABLED",
+            "UpdatedAt": "2026-04-12T12:57:42+02:00",
+            "AdditionalConfiguration": [
+                {
+                    "Name": "EKS_ADDON_MANAGEMENT",
+                    "Status": "DISABLED",
+                    "UpdatedAt": "2026-04-12T12:57:42+02:00"
+                }
+            ]
+        },
+        {
+            "Name": "LAMBDA_NETWORK_LOGS",
+            "Status": "ENABLED",
+            "UpdatedAt": "2026-04-12T12:57:42+02:00"
+        },
+        {
+            "Name": "RUNTIME_MONITORING",
+            "Status": "DISABLED",
+            "UpdatedAt": "2026-04-12T12:57:42+02:00",
+            "AdditionalConfiguration": [
+                {
+                    "Name": "EKS_ADDON_MANAGEMENT",
+                    "Status": "DISABLED",
+                    "UpdatedAt": "2026-04-12T12:57:42+02:00"
+                },
+                {
+                    "Name": "ECS_FARGATE_AGENT_MANAGEMENT",
+                    "Status": "DISABLED",
+                    "UpdatedAt": "2026-04-12T12:57:42+02:00"
+                },
+                {
+                    "Name": "EC2_AGENT_MANAGEMENT",
+                    "Status": "DISABLED",
+                    "UpdatedAt": "2026-04-12T12:57:42+02:00"
+                }
+            ]
+        }
+    ]
+}
+}
