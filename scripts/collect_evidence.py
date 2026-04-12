@@ -29,6 +29,7 @@ import argparse
 import json
 import logging
 import sys
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -309,7 +310,7 @@ def main(argv: list[str] | None = None) -> int:
         logger.error("AWS credential check failed: %s", e)
         return 1
 
-    collectors = [
+    collectors: list[Callable[[], dict[str, Any]]] = [
         lambda: collect_guardduty(session, args.region),
         lambda: collect_cloudtrail(session, args.region),
         lambda: collect_iam_password_policy(session),

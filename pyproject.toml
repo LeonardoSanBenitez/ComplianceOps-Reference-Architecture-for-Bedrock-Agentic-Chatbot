@@ -20,6 +20,10 @@ strict = true
 warn_return_any = true
 warn_unused_ignores = true
 files = ["scripts/"]
+# boto3 does not ship type stubs; ignore missing imports for AWS SDK
+[[tool.mypy.overrides]]
+module = ["boto3", "boto3.*", "botocore", "botocore.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
