@@ -271,6 +271,7 @@ For a public demo, the report can be public. For real customers, this will almos
 * Human-process evidence is the hardest part to automate. It needs a deliberate design, not an afterthought.
 * AI governance evidence should be tied to model registry, evaluation, guardrails, lineage, and monitoring, otherwise the “compliance” layer will be too abstract to be useful.
 * The project should avoid turning into a GRC product clone. The goal is a reference architecture, not a full commercial platform.
+* How to trigger the CICD from the repo? I do want to have the projects in github, but maybe we should add another remote for a aws-hosted remote, and triggers to it trigger the deployments... Or something else, think and disucss. Anyways, I want a good devops organization that is lean and clear.
 
 ## Contributing
 

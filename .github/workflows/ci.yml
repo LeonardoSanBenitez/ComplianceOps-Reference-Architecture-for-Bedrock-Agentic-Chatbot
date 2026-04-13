@@ -34,7 +34,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps
-        run: pip install pyyaml
+        run: pip install pyyaml compliance-trestle==3.6.0
 
       - name: Validate catalog YAML can be parsed
         run: |
@@ -55,6 +55,24 @@ jobs:
               raise SystemExit(1)
           print(f"OK: {len(list(Path('compliance/catalogs').glob('*.yaml')))} catalog(s) valid")
           EOF
+
+      # trestle validate: initialise a workspace, import both catalogs, validate.
+      # This confirms each file is a valid OSCAL 1.1.2 catalog per the trestle pydantic model.
+      # The workspace is ephemeral (tmp dir); not committed to the repo.
+      # All trestle commands must run from within the workspace directory.
+      - name: trestle validate — OSCAL schema check
+        run: |
+          set -euo pipefail
+          REPO_ROOT="$(pwd)"
+          TRESTLE_WS="$(mktemp -d)"
+          cd "$TRESTLE_WS"
+          trestle init
+          for f in "$REPO_ROOT"/compliance/catalogs/*.yaml; do
+            name="$(basename "$f" .yaml)"
+            trestle import -f "$f" -o "$name"
+          done
+          trestle validate -a
+          echo "OK: trestle validate passed for all catalogs"
 
       - name: Validate attestation YAML can be parsed
         run: |

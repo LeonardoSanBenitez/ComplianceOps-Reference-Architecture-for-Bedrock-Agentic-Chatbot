@@ -26,8 +26,10 @@ catalog:
           title: AI literacy obligations for providers and deployers
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "EU AI Act Art. 4"
             - name: applicability-tier
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "limited-risk"
           parts:
             - id: euaia-4-stmt
@@ -53,8 +55,10 @@ catalog:
           title: Transparency to users — chatbot disclosure
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "EU AI Act Art. 50(1)"
             - name: applicability-tier
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "limited-risk"
           parts:
             - id: euaia-50-1-stmt
@@ -79,8 +83,10 @@ catalog:
           title: Transparency — AI-generated content detection
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "EU AI Act Art. 50(2)"
             - name: applicability-tier
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "limited-risk"
           parts:
             - id: euaia-50-2-stmt
@@ -104,8 +110,10 @@ catalog:
           title: GPAI technical documentation
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "EU AI Act Art. 52, Annex XI"
             - name: applicability-tier
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "gpai-provider"
           parts:
             - id: euaia-52-1-stmt
@@ -130,8 +138,10 @@ catalog:
           title: GPAI copyright policy
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "EU AI Act Art. 53(1)(c)"
             - name: applicability-tier
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "gpai-provider"
           parts:
             - id: euaia-52-2-stmt
@@ -156,8 +166,10 @@ catalog:
           title: Human oversight and monitoring
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "EU AI Act Art. 26 (adapted for limited risk)"
             - name: applicability-tier
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "limited-risk"
           parts:
             - id: euaia-deployer-1-stmt
@@ -179,8 +191,10 @@ catalog:
           title: Use case risk classification
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "EU AI Act Art. 6, Annex III"
             - name: applicability-tier
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "limited-risk"
           parts:
             - id: euaia-deployer-2-stmt
@@ -204,8 +218,10 @@ catalog:
           title: Registration in EU database (where required)
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "EU AI Act Art. 49, 71"
             - name: applicability-tier
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "limited-risk"
           parts:
             - id: euaia-deployer-3-stmt

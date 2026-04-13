@@ -15,9 +15,19 @@
 #   control-id:   maps to a control in one of the OSCAL catalogs
 #   status:       satisfied | partial | not-satisfied | not-applicable | exception
 #   decision:     one sentence — what was decided
-#   justification: prose — WHY this decision was made, context, reasoning
-#   reviewed-by:  name or role of the person who made this attestation
-#   reviewed-at:  ISO 8601 datetime
+#   justification: prose — WHY this decision was made, context, reasoning.
+#                 Write as if it will be published. Embarrassment is the
+#                 accountability surface. "Status: partial" is not a
+#                 justification; what is missing and why is the justification.
+#   reviewed-by:  name or role of the person who attested this review
+#   reviewed-at:  ISO 8601 datetime — timestamp of THIS review, not of
+#                 implementation. Attestation drift (reviewed-at is stale
+#                 because the system changed) is a known failure mode.
+#   built-by:     name or role of the person who implemented this control.
+#                 When reviewed-by == built-by, an auditor can see that.
+#                 A system that architecturally cannot separate these roles
+#                 because it has one engineer is different from one that
+#                 chose not to separate them. The field documents the fact.
 #
 # Optional fields:
 #   expires-at:   for exceptions and time-bounded decisions
@@ -32,10 +42,21 @@
 #   not-applicable:  control does not apply; justification must explain why
 #   exception:       conscious risk acceptance; expires-at required
 #
-# Separation of duties note:
+# Separation of duties note (Maria, 2026-04-13):
 #   Code can check that two people signed. It cannot check that the second
 #   person read what they signed. This schema does not solve that problem.
 #   The discipline of writing honest justifications does.
+#
+#   Self-attestation failure modes to be aware of (not prevented, made visible):
+#   - Social pressure to mark things green
+#   - Attestation by the person least qualified to assess the risk
+#   - Attestation drift: reviewed-at is months old but system changed
+#   - Moral licensing: team relaxes because the file says satisfied
+#
+#   None of these are preventable in YAML. They are made visible by:
+#   (1) naming the reviewer, (2) naming the builder separately, (3) requiring
+#   prose justification that would embarrass someone if published,
+#   (4) using git timestamps and commit history as the objective audit trail.
 
 # Example attestation (not a real attestation — for documentation only):
 # ---

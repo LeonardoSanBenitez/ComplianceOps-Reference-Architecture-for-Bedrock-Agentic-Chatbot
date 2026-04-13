@@ -20,6 +20,7 @@ catalog:
           title: Lawfulness, fairness and transparency of processing
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 5(1)(a)"
           parts:
             - id: gdpr-5-1-a-stmt
@@ -38,6 +39,7 @@ catalog:
           title: Purpose limitation
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 5(1)(b)"
           parts:
             - id: gdpr-5-1-b-stmt
@@ -57,6 +59,7 @@ catalog:
           title: Storage limitation
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 5(1)(e)"
           parts:
             - id: gdpr-5-1-e-stmt
@@ -76,6 +79,7 @@ catalog:
           title: Integrity and confidentiality
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 5(1)(f)"
           parts:
             - id: gdpr-5-1-f-stmt
@@ -99,6 +103,7 @@ catalog:
           title: Information to be provided where personal data are collected from the data subject
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 13"
           parts:
             - id: gdpr-13-stmt
@@ -123,6 +128,7 @@ catalog:
           title: Right to erasure
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 17"
           parts:
             - id: gdpr-17-stmt
@@ -145,6 +151,7 @@ catalog:
           title: Data protection by design and by default
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 25"
           parts:
             - id: gdpr-25-stmt
@@ -168,6 +175,7 @@ catalog:
           title: Processor obligations and Data Processing Agreement
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 28"
           parts:
             - id: gdpr-28-stmt
@@ -192,6 +200,7 @@ catalog:
           title: Records of processing activities (ROPA)
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 30"
           parts:
             - id: gdpr-30-stmt
@@ -214,6 +223,7 @@ catalog:
           title: Security of processing
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 32"
           parts:
             - id: gdpr-32-stmt
@@ -238,6 +248,7 @@ catalog:
           title: Notification of a personal data breach to the supervisory authority
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 33"
           parts:
             - id: gdpr-33-stmt
@@ -261,6 +272,7 @@ catalog:
           title: Data protection impact assessment (DPIA)
           props:
             - name: regulation-reference
+              ns: https://compliance-ops-bedrock.example.com/ns/props
               value: "GDPR Art. 35"
           parts:
             - id: gdpr-35-stmt
