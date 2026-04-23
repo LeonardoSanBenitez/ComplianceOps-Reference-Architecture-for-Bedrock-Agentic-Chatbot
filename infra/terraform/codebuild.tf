@@ -80,8 +80,8 @@ resource "aws_iam_role_policy" "codebuild_tf_logs" {
           "logs:PutLogEvents"
         ]
         Resource = [
-          "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/codebuild/${var.project_name}-tf-*",
-          "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/codebuild/${var.project_name}-tf-*:*"
+          "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/codebuild/${var.project_name}-*",
+          "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:/aws/codebuild/${var.project_name}-*:*"
         ]
       }
     ]
@@ -468,7 +468,7 @@ resource "aws_iam_role_policy" "codebuild_tf_self" {
           "codebuild:ListBuildsForProject"
         ]
         Resource = [
-          "arn:aws:codebuild:${var.aws_region}:${var.aws_account_id}:project/${var.project_name}-tf-*"
+          "arn:aws:codebuild:${var.aws_region}:${var.aws_account_id}:project/${var.project_name}-*"
         ]
       }
     ]
