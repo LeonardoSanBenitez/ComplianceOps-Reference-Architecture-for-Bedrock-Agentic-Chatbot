@@ -1,0 +1,6 @@
+# Lambda deployment dependencies for compliance-ops-bedrock app layer.
+# These are bundled into the Lambda deployment package.
+# Pin versions for reproducibility.
+
+boto3==1.38.0
+strands-agents==1.37.0

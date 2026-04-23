@@ -18,10 +18,10 @@ jobs:
           python-version: "3.11"
 
       - name: Install deps
-        run: pip install mypy pyyaml jinja2 pydantic types-PyYAML boto3 boto3-stubs[essential] types-boto3
+        run: pip install mypy pyyaml jinja2 pydantic types-PyYAML boto3 boto3-stubs[essential] types-boto3 strands-agents==1.37.0
 
-      - name: mypy
-        run: mypy --config-file pyproject.toml scripts/
+      - name: mypy (scripts + app)
+        run: mypy --config-file pyproject.toml scripts/ app/
 
   validate-oscal-yaml:
     name: Validate OSCAL YAML structure

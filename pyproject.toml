@@ -19,10 +19,15 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_ignores = true
-files = ["scripts/"]
+files = ["scripts/", "app/"]
 # boto3 does not ship type stubs; ignore missing imports for AWS SDK
 [[tool.mypy.overrides]]
 module = ["boto3", "boto3.*", "botocore", "botocore.*"]
+ignore_missing_imports = true
+
+# strands-agents does not ship PEP 561 type stubs
+[[tool.mypy.overrides]]
+module = ["strands", "strands.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

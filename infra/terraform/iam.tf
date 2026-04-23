@@ -334,6 +334,36 @@ resource "aws_iam_role_policy" "lambda_dynamodb" {
   })
 }
 
+# Permission: retrieve from Bedrock Knowledge Base (used by tools.py retrieve tool).
+resource "aws_iam_role_policy" "lambda_bedrock_kb" {
+  name = "bedrock-kb-retrieve"
+  role = aws_iam_role.lambda_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "BedrockKBRetrieve"
+        Effect = "Allow"
+        Action = [
+          "bedrock:Retrieve",
+          "bedrock:RetrieveAndGenerate"
+        ]
+        Resource = [
+          "arn:aws:bedrock:${var.aws_region}:${var.aws_account_id}:knowledge-base/*"
+        ]
+      },
+      {
+        # Strands uses BedrockModel to invoke the foundation model directly.
+        Sid    = "BedrockInvokeModel"
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+        Resource = [local.agent_model_arn]
+      }
+    ]
+  })
+}
+
 # Permission: KMS decrypt for S3 and DynamoDB operations.
 resource "aws_iam_role_policy" "lambda_kms" {
   name = "kms-s3-dynamodb-decrypt"

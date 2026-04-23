@@ -26,9 +26,19 @@ resource "aws_s3vectors_index" "kb" {
 
   # Titan Text Embeddings V2 produces 1024-dimensional vectors.
   # Dimension must match the embedding model; changing it requires recreating the index.
-  data_type  = "float32"
-  dimension  = 1024
+  data_type       = "float32"
+  dimension       = 1024
   distance_metric = "cosine"
+
+  # Bedrock KB stores the original text chunk and document metadata in
+  # AMAZON_BEDROCK_TEXT and AMAZON_BEDROCK_METADATA respectively.
+  # Text chunks can be several KB; keeping them as filterable metadata would
+  # violate the S3 Vectors 2048-byte filterable-metadata limit.
+  # Declare them non-filterable so up to 40KB of metadata is allowed per vector.
+  # Reference: https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-vectors-bedrock-kb.html
+  metadata_configuration {
+    non_filterable_metadata_keys = ["AMAZON_BEDROCK_TEXT", "AMAZON_BEDROCK_METADATA"]
+  }
 }
 
 # ── Bedrock Knowledge Base ─────────────────────────────────────────────────────
