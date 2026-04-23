@@ -267,16 +267,24 @@ resource "aws_codebuild_project" "app_deploy" {
                 aws lambda create-function-url-config \
                   --function-name $LAMBDA_FUNCTION_NAME \
                   --auth-type NONE \
-                  --cors 'AllowOrigins=["*"],AllowMethods=["POST","OPTIONS"],AllowHeaders=["Content-Type"]' \
+                  --cors 'AllowOrigins=["*"]' \
                   --region $AWS_DEFAULT_REGION \
                   --no-cli-pager || echo "Function URL may already exist"
-                echo "Adding public resource-based policy for Function URL"
+                echo "Adding public resource-based policy for Function URL (InvokeFunctionUrl)"
                 aws lambda add-permission \
                   --function-name $LAMBDA_FUNCTION_NAME \
                   --statement-id FunctionURLAllowPublicAccess \
                   --action lambda:InvokeFunctionUrl \
                   --principal "*" \
                   --function-url-auth-type NONE \
+                  --region $AWS_DEFAULT_REGION \
+                  --no-cli-pager || echo "Permission may already exist"
+                echo "Adding public resource-based policy (InvokeFunction, required since Oct 2025)"
+                aws lambda add-permission \
+                  --function-name $LAMBDA_FUNCTION_NAME \
+                  --statement-id AllowPublicInvoke \
+                  --action lambda:InvokeFunction \
+                  --principal "*" \
                   --region $AWS_DEFAULT_REGION \
                   --no-cli-pager || echo "Permission may already exist"
               fi
