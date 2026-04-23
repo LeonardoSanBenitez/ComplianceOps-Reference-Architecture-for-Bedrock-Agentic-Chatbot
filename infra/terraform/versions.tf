@@ -8,15 +8,16 @@ terraform {
     }
   }
 
-  # State backend: use S3 + DynamoDB in production.
-  # For initial dev, comment-out the backend block and use local state.
-  # backend "s3" {
-  #   bucket         = "compliance-ops-bedrock-tfstate"
-  #   key            = "bedrock/terraform.tfstate"
-  #   region         = "us-east-1"
-  #   dynamodb_table = "compliance-ops-bedrock-tflock"
-  #   encrypt        = true
-  # }
+  # State backend: S3 + DynamoDB locking.
+  # Bootstrap: bucket and table were created manually (2026-04-23) before
+  # Terraform could manage itself. See infra/ci notes for details.
+  backend "s3" {
+    bucket         = "compliance-ops-bedrock-tfstate"
+    key            = "bedrock/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "compliance-ops-bedrock-tflock"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
