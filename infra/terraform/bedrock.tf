@@ -103,59 +103,10 @@ resource "aws_bedrockagent_data_source" "readme" {
   }
 }
 
-# ── Bedrock Agent ──────────────────────────────────────────────────────────────
+# NOTE: Bedrock Managed Agent removed.
 #
-# The agent uses Nova Micro as the orchestration model.
-# System prompt (instruction) satisfies two compliance requirements:
-#   - EU AI Act Art. 50(1): agent identifies itself as an AI system
-#   - EU AI Act Art. 50(2): agent responses are tagged as AI-generated
-#
-# The agent is associated with the knowledge base after creation.
-# An alias is created so callers use a stable reference; the agent
-# can be updated (new version prepared) without changing the alias ARN.
-
-resource "aws_bedrockagent_agent" "main" {
-  agent_name              = "${var.project_name}-agent-${var.environment}"
-  agent_resource_role_arn = aws_iam_role.bedrock_agent.arn
-  description             = "Compliance-ops-bedrock reference chatbot"
-  foundation_model        = var.agent_foundation_model_id
-
-  # Instruction constitutes the system prompt for every session.
-  # Fulfils EU AI Act Art. 50(1) AI identity disclosure requirement.
-  instruction = <<-EOT
-    You are an AI compliance assistant for the compliance-ops-bedrock demo system.
-    You must always identify yourself as an AI assistant when asked.
-    You answer questions about the system's architecture, security controls,
-    GDPR compliance posture, and EU AI Act classification.
-    You retrieve information from the compliance knowledge base.
-    You do not make medical, legal, financial, or employment decisions.
-    When you are uncertain, say so clearly rather than inventing an answer.
-    This system is a demonstration and does not process real personal data.
-  EOT
-
-  # idle_session_ttl_in_seconds: 600 seconds (10 minutes) balances usability
-  # with GDPR principle of data minimisation.
-  idle_session_ttl_in_seconds = 600
-
-  # Guardrails configuration: omitted for initial demo.
-  # Add aws_bedrockagent_guardrail resource before handling any real user data.
-}
-
-resource "aws_bedrockagent_agent_knowledge_base_association" "main" {
-  agent_id             = aws_bedrockagent_agent.main.agent_id
-  description          = "Compliance documentation knowledge base"
-  knowledge_base_id    = aws_bedrockagent_knowledge_base.main.id
-  knowledge_base_state = "ENABLED"
-}
-
-# Agent alias: stable ARN for callers.
-# Routing configuration points to the DRAFT version by default.
-# When promoting to a tested version, update the alias here.
-resource "aws_bedrockagent_agent_alias" "main" {
-  agent_id         = aws_bedrockagent_agent.main.agent_id
-  agent_alias_name = "${var.environment}-latest"
-  description      = "Latest prepared version of the ${var.environment} agent"
-
-  # No routing_configuration block = AWS automatically routes to DRAFT.
-  # Add explicit routing to a pinned version before production use.
-}
+# The application uses the Strands SDK (app/agent.py) to orchestrate
+# Nova Micro directly via BedrockModel. The Bedrock Knowledge Base is
+# queried by the Strands agent tools via bedrock-agent-runtime.retrieve().
+# A separate aws_bedrockagent_agent resource is not used and was removed
+# to eliminate the redundant parallel implementation.

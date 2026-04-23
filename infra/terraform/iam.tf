@@ -1,19 +1,14 @@
 # ── IAM roles and policies ─────────────────────────────────────────────────────
 #
-# Three principals:
+# Two principals:
 #
 #   1. bedrock-kb-role     — assumed by Amazon Bedrock Knowledge Bases service.
 #      Permissions: invoke embedding model, read source S3 bucket,
 #      read/write/query S3 Vectors index.
 #
-#   2. bedrock-agent-role  — assumed by Amazon Bedrock Agents service.
-#      Permissions: invoke Nova Micro foundation model, query knowledge base.
-#
-#   3. lambda-execution-role  — assumed by any Lambda function backing action groups.
-#      Permissions: write to conversation log S3 bucket, write to DynamoDB,
-#      read Bedrock KB (for custom retrieval logic if needed).
-#      Lambda functions are not yet deployed; this role is pre-provisioned so
-#      it can be referenced in the Lambda resource block when added.
+#   2. lambda-execution-role  — assumed by the Lambda function (chat endpoint).
+#      Permissions: invoke Nova Micro via Strands, retrieve from Knowledge Base,
+#      write conversation logs to S3, write session data to DynamoDB, KMS decrypt.
 #
 # Security posture:
 #   - All trust policies include aws:SourceAccount condition (confused deputy mitigation).
@@ -172,78 +167,6 @@ resource "aws_iam_role_policy" "bedrock_kb_kms" {
           "kms:DescribeKey"
         ]
         Resource = [aws_kms_key.main.arn]
-      }
-    ]
-  })
-}
-
-# ── IAM role: Bedrock Agent ────────────────────────────────────────────────────
-
-resource "aws_iam_role" "bedrock_agent" {
-  # Bedrock requires the role name to start with "AmazonBedrockExecutionRoleForAgents_"
-  # Reference: https://docs.aws.amazon.com/bedrock/latest/userguide/agents-permissions.html
-  name = "AmazonBedrockExecutionRoleForAgents_${var.project_name}-${var.environment}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowBedrockAgentAssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "bedrock.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = var.aws_account_id
-          }
-          ArnLike = {
-            "AWS:SourceArn" = "arn:aws:bedrock:${var.aws_region}:${var.aws_account_id}:agent/*"
-          }
-        }
-      }
-    ]
-  })
-}
-
-# Permission: invoke the foundation model for agent orchestration.
-resource "aws_iam_role_policy" "bedrock_agent_model" {
-  name = "invoke-foundation-model"
-  role = aws_iam_role.bedrock_agent.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "InvokeFoundationModel"
-        Effect = "Allow"
-        Action = ["bedrock:InvokeModel"]
-        Resource = [local.agent_model_arn]
-      }
-    ]
-  })
-}
-
-# Permission: query the knowledge base.
-# Scoped to KBs in this account; tighten to specific KB ARN after creation.
-resource "aws_iam_role_policy" "bedrock_agent_kb" {
-  name = "query-knowledge-base"
-  role = aws_iam_role.bedrock_agent.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "RetrieveFromKnowledgeBase"
-        Effect = "Allow"
-        Action = [
-          "bedrock:Retrieve",
-          "bedrock:RetrieveAndGenerate"
-        ]
-        Resource = [
-          "arn:aws:bedrock:${var.aws_region}:${var.aws_account_id}:knowledge-base/*"
-        ]
       }
     ]
   })

@@ -30,7 +30,7 @@ variable "project_name" {
 
 variable "agent_foundation_model_id" {
   type        = string
-  description = "Foundation model ID for the Bedrock Agent"
+  description = "Foundation model ID for the Strands agent (Lambda). Injected as AGENT_MODEL_ID env var."
   # Amazon Nova Micro — lowest cost on-demand text model, sufficient for demo.
   # To switch model: change this value only; IAM policy references this variable.
   default     = "amazon.nova-micro-v1:0"

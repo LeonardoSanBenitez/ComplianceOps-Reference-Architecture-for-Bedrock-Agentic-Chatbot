@@ -1,13 +1,3 @@
-output "bedrock_agent_id" {
-  description = "Bedrock Agent ID"
-  value       = aws_bedrockagent_agent.main.agent_id
-}
-
-output "bedrock_agent_alias_arn" {
-  description = "Bedrock Agent Alias ARN — use this in API calls"
-  value       = aws_bedrockagent_agent_alias.main.agent_alias_arn
-}
-
 output "bedrock_kb_id" {
   description = "Bedrock Knowledge Base ID"
   value       = aws_bedrockagent_knowledge_base.main.id
@@ -36,11 +26,6 @@ output "kms_key_arn" {
 output "bedrock_kb_role_arn" {
   description = "IAM role ARN for Bedrock Knowledge Base service"
   value       = aws_iam_role.bedrock_kb.arn
-}
-
-output "bedrock_agent_role_arn" {
-  description = "IAM role ARN for Bedrock Agent service"
-  value       = aws_iam_role.bedrock_agent.arn
 }
 
 output "lambda_execution_role_arn" {
