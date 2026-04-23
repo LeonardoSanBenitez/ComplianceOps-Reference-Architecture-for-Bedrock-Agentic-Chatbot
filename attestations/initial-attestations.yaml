@@ -247,28 +247,33 @@ attestations:
     control-id: gdpr-33
     status: partial
     decision: >
-      Automated detection is operational via GuardDuty + SNS; formal 72-hour
-      notification procedure is not yet documented.
+      Automated detection is operational via GuardDuty + SNS; written 72-hour
+      notification procedure is now documented (IRP-001). Remaining gap: DPA
+      notification template and formal DPO role not yet established; both are
+      pre-production requirements.
     justification: >
       Automated detection is operational: GuardDuty findings at MEDIUM severity
       and above trigger an EventBridge rule that publishes to the
-      zoo-security-alerts SNS topic. This provides timely automated alerting.
-      The gap is procedural: there is no written procedure defining how the team
-      would (1) assess whether an alert constitutes a personal data breach,
-      (2) determine whether the DPA must be notified, (3) execute the 72-hour
-      notification timeline, or (4) document the breach in the incident register.
-      This procedure must be written and approved before real personal data is
-      processed. The compensating control — no real personal data in the system
-      — limits the current risk. Status: partial — detection automated;
-      notification procedure not documented.
+      zoo-security-alerts SNS topic. The written incident response procedure
+      (IRP-001) has been created at compliance/procedures/incident-response.md
+      and covers: (1) personal data scope assessment, (2) severity classification,
+      (3) containment steps with CLI references, (4) 72-hour notification timeline,
+      (5) DPA notification content requirements (Art. 33(3)), and (6) incident
+      register obligations. Outstanding gaps before production: a DPA notification
+      template must be created, a legal/DPO contact established, and the procedure
+      must be reviewed by the DPO. The compensating control — no real personal data
+      in the system — limits current risk. Status: partial — detection automated
+      and notification procedure documented; DPA template and DPO role outstanding.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-23T09:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - evidence/automated/guardduty-status.json
+      - compliance/procedures/incident-response.md
     compensating-controls:
       - Automated GuardDuty detection + SNS alerting operational
       - No real personal data processed yet
+      - Written incident response procedure IRP-001 in place
 
   - id: gdpr-35-dpia-001
     control-id: gdpr-35
