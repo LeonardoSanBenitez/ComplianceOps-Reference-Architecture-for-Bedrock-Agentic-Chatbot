@@ -129,14 +129,16 @@ resource "aws_iam_role_policy" "bedrock_kb_s3vectors" {
         ]
         # Scoped to the specific vector bucket + index created below.
         Resource = [
-          "${aws_s3vectors_vector_bucket.kb.arn}/index/${aws_s3vectors_index.kb.index_name}"
+          "${aws_s3vectors_vector_bucket.kb.vector_bucket_arn}/index/${aws_s3vectors_index.kb.index_name}"
         ]
       }
     ]
   })
 }
 
-# Permission: use KMS key for S3 operations.
+# Permission: use KMS key for S3 and S3 Vectors operations.
+# Two statements: one scoped to s3 ViaService, one for s3vectors (which does
+# not propagate a standard ViaService condition through the Bedrock KB service).
 resource "aws_iam_role_policy" "bedrock_kb_kms" {
   name = "kms-s3-decrypt"
   role = aws_iam_role.bedrock_kb.id
@@ -157,6 +159,19 @@ resource "aws_iam_role_policy" "bedrock_kb_kms" {
             "kms:ViaService" = "s3.${var.aws_region}.amazonaws.com"
           }
         }
+      },
+      {
+        # S3 Vectors (used by Bedrock KB for vector storage) does not pass
+        # a ViaService condition through the assumed role call chain.
+        # Scope to the specific key; accept the absence of ViaService here.
+        Sid    = "KMSDecryptForS3Vectors"
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey",
+          "kms:DescribeKey"
+        ]
+        Resource = [aws_kms_key.main.arn]
       }
     ]
   })

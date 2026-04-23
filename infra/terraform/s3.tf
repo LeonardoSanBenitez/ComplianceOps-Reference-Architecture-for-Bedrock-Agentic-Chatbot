@@ -59,6 +59,25 @@ resource "aws_kms_key" "main" {
             "kms:EncryptionContext:aws:logs:arn" = "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:*"
           }
         }
+      },
+      # S3 Vectors asynchronous indexing service requires KMS access.
+      # Reference: https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-vectors-encryption.html
+      {
+        Sid    = "AllowS3VectorsIndexing"
+        Effect = "Allow"
+        Principal = {
+          Service = "indexing.s3vectors.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = var.aws_account_id
+          }
+        }
       }
     ]
   })
