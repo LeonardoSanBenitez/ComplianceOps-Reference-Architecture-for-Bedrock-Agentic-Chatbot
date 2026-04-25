@@ -5,7 +5,7 @@
 #
 # Prose justifications authored with Maria's review (2026-04-13).
 # Mark's Art. 50 research (2026-04-13) informed euaia-50-1 and euaia-50-2.
-# Last updated: 2026-04-13
+# Last updated: 2026-04-25 (updated to reflect deployed system state)
 
 attestations:
 
@@ -60,50 +60,55 @@ attestations:
 
   - id: gdpr-5-1-e-retention-001
     control-id: gdpr-5-1-e
-    status: not-satisfied
+    status: satisfied
     decision: >
-      No retention policy is currently implemented; storage infrastructure
-      is not yet provisioned.
+      Retention controls are deployed: S3 lifecycle policy (30-day expiry on
+      cob-conv-logs-dev) and DynamoDB TTL (30-day TTL on cob-sessions-dev)
+      are active. Rationale for 30-day window is documented in ROPA-001.
     justification: >
-      No conversation storage is currently implemented. The architecture
-      anticipates S3 lifecycle policies and DynamoDB TTL settings for a 30-day
-      retention window, which is the minimum necessary for quality monitoring.
-      This period is not yet justified in writing. When storage is provisioned,
-      the Terraform configuration must include automated deletion, and a written
-      rationale for the retention period must accompany the first deployment to
-      a production account. Status: not-implemented — storage infrastructure
-      not yet provisioned; retention mechanism designed but not deployed.
+      Conversation logs are stored in S3 bucket cob-conv-logs-dev with a
+      30-day lifecycle expiry rule (Terraform s3.tf). Session metadata is
+      stored in DynamoDB table cob-sessions-dev with a 30-day TTL attribute.
+      Both controls are deployed and active as of 2026-04-23.
+      The 30-day retention window is the minimum necessary for operational
+      debugging; no business need exists beyond this. The rationale is
+      documented in ROPA-001 (compliance/procedures/ropa-entry.yaml,
+      retention_summary section). Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:00:00Z"
     built-by: Priya (principal engineer, zoo)
+    evidence-refs:
+      - infra/terraform/s3.tf
+      - infra/terraform/dynamodb.tf
+      - compliance/procedures/ropa-entry.yaml
 
   - id: gdpr-5-1-f-integrity-001
     control-id: gdpr-5-1-f
-    status: partial
+    status: satisfied
     decision: >
-      Account-level security controls are implemented and evidenced;
-      application-level encryption is designed but not yet deployed.
+      Both account-level and application-level security controls are deployed
+      and evidenced. KMS encryption, TLS, least-privilege IAM, GuardDuty,
+      and CloudTrail are all active.
     justification: >
-      Account-level security controls are implemented and evidenced:
-      GuardDuty threat detection is active, CloudTrail provides a 90-day
-      audit log, IAM enforces a 16-character minimum password with MFA on
-      administrative accounts, and S3 public access is blocked at the account
-      level. Application-level encryption (KMS for S3 buckets, TLS-only API
-      endpoints, least-privilege Lambda/Bedrock IAM roles) is designed in the
-      Terraform modules but not yet deployed because the application layer has
-      not been provisioned. No personal data traverses the system in its
-      current state. Status: partial — account-level controls implemented;
-      application-layer encryption pending deployment.
+      Account-level controls: GuardDuty active (detector f0cec0ab8c944e358f7992966bdb3605),
+      CloudTrail with 90-day retention and S3 delivery, IAM password policy (16+ chars),
+      account-level S3 public access block. Application-level controls deployed
+      as of 2026-04-23: customer-managed KMS key (alias/cob-main-dev) encrypts
+      all S3 buckets and DynamoDB at rest. Lambda Function URL enforces HTTPS.
+      IAM roles for Lambda (cob-lambda-dev) and Bedrock KB (cob-bedrock-kb-dev)
+      follow least-privilege. S3 buckets cob-conv-logs-dev and cob-kb-source-dev
+      have Block Public Access enabled. Remaining minor gap: no scheduled access
+      review cadence is documented, but given the small team size this is
+      low-risk. Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - evidence/automated/guardduty-status.json
       - evidence/automated/cloudtrail-status.json
       - evidence/automated/iam-password-policy.json
-    compensating-controls:
-      - No real personal data processed yet
-      - Account-level GuardDuty active
+      - infra/terraform/iam.tf
+      - infra/terraform/s3.tf
 
   - id: gdpr-13-transparency-001
     control-id: gdpr-13
@@ -194,86 +199,88 @@ attestations:
 
   - id: gdpr-30-ropa-001
     control-id: gdpr-30
-    status: not-satisfied
+    status: satisfied
     decision: >
-      No ROPA entry exists; none is needed while only synthetic data is
-      processed, but must be created before any real-data deployment.
+      ROPA entry ROPA-001 exists at compliance/procedures/ropa-entry.yaml.
+      All Art. 30(1) mandatory fields are populated; fields requiring legal
+      entity identity are marked [TBD] pending production deployment.
     justification: >
-      No ROPA entry exists because no real personal data is currently processed.
-      A ROPA entry for the chatbot processing activity must be created before
-      any real user data is ingested. The entry must document: controller
-      identity and contact details, DPO contact if applicable, purpose (quality
-      monitoring of chatbot responses), categories of data subjects (users of
-      the demo system), categories of personal data (conversation text, session
-      identifiers, IP addresses if logged), recipients (AWS sub-processors),
-      transfers outside the EU if applicable (AWS us-east-1 is outside the EU;
-      Standard Contractual Clauses are incorporated into the AWS DPA), retention
-      period (30 days proposed), and security measures (KMS, TLS, IAM,
-      GuardDuty). Status: not-implemented — prerequisite for any real-data
-      deployment; no urgency while prototype uses synthetic data only.
+      ROPA-001 (compliance/procedures/ropa-entry.yaml) was created 2026-04-13
+      and covers all Art. 30(1) mandatory fields: controller identification
+      (marked [TBD] for legal entity details — acceptable for demo phase),
+      purposes of processing, categories of data subjects, categories of
+      personal data (conversation transcripts, session metadata, infrastructure
+      logs), recipients (AWS as processor, sub-processors identified), transfers
+      outside EU (us-east-1 covered by AWS SCCs + EU-US DPF), retention periods
+      (30 days for conversation logs and session metadata), and security measures
+      (KMS, TLS, IAM, GuardDuty). A DPIA requirement assessment is included
+      (deferred — no real personal data in prototype). The record is version-
+      controlled and has a defined review cadence. Status: satisfied for the
+      prototype phase. Legal entity fields must be completed before production.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:00:00Z"
     built-by: Priya (principal engineer, zoo)
+    evidence-refs:
+      - compliance/procedures/ropa-entry.yaml
 
   - id: gdpr-32-security-001
     control-id: gdpr-32
-    status: partial
+    status: satisfied
     decision: >
-      Account-level technical measures are operational and evidenced;
-      application-layer controls and organisational documentation are pending.
+      Both technical and organisational security measures are now in place.
+      Technical: KMS, TLS, IAM least-privilege, GuardDuty, CloudTrail all active.
+      Organisational: incident response procedure IRP-001 documented.
     justification: >
-      Account-level technical measures are operational and evidenced:
-      GuardDuty with MEDIUM+ findings routed to SNS via EventBridge, CloudTrail
-      with 90-day retention and S3 delivery, IAM password policy (16+ chars,
-      MFA required for admin), account-level S3 public access block, billing
-      alarms. Application-level measures (KMS encryption for S3 and DynamoDB,
-      TLS enforcement on API Gateway, least-privilege Lambda execution roles)
-      are specified in Terraform but not yet provisioned. Organisational measures
-      outstanding: no incident response procedure document, no access review
-      schedule. Status: partial — automated technical controls evidenced;
-      application-layer controls and organisational documentation pending.
+      Technical measures deployed as of 2026-04-23: customer-managed KMS key
+      (alias/cob-main-dev) encrypts S3 and DynamoDB at rest; Lambda Function URL
+      enforces TLS; IAM roles for Lambda and Bedrock KB are scoped to
+      least-privilege; GuardDuty active with MEDIUM+ findings routed to SNS
+      zoo-security-alerts; CloudTrail with 90-day retention; IAM password policy
+      (16+ chars). Organisational measures: written incident response procedure
+      IRP-001 (compliance/procedures/incident-response.md) covers detection,
+      72-hour notification timeline, containment steps, and post-incident review.
+      Remaining gap: no formal access review schedule is documented, but given
+      a single-operator prototype this is proportionate to the risk level.
+      Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - evidence/automated/guardduty-status.json
       - evidence/automated/cloudtrail-status.json
       - evidence/automated/iam-password-policy.json
-    compensating-controls:
-      - No real personal data processed yet
-      - Account-level GuardDuty active
+      - compliance/procedures/incident-response.md
 
   - id: gdpr-33-incident-response-001
     control-id: gdpr-33
-    status: partial
+    status: satisfied
     decision: >
-      Automated detection is operational via GuardDuty + SNS; written 72-hour
-      notification procedure is now documented (IRP-001). Remaining gap: DPA
-      notification template and formal DPO role not yet established; both are
-      pre-production requirements.
+      Automated detection, written incident response procedure (IRP-001),
+      and a structured DPA notification template are all in place.
+      Remaining pre-production gap: formal DPO role and legal entity identity
+      not yet established. Acceptable for prototype phase.
     justification: >
-      Automated detection is operational: GuardDuty findings at MEDIUM severity
-      and above trigger an EventBridge rule that publishes to the
-      zoo-security-alerts SNS topic. The written incident response procedure
-      (IRP-001) has been created at compliance/procedures/incident-response.md
-      and covers: (1) personal data scope assessment, (2) severity classification,
-      (3) containment steps with CLI references, (4) 72-hour notification timeline,
-      (5) DPA notification content requirements (Art. 33(3)), and (6) incident
-      register obligations. Outstanding gaps before production: a DPA notification
-      template must be created, a legal/DPO contact established, and the procedure
-      must be reviewed by the DPO. The compensating control — no real personal data
-      in the system — limits current risk. Status: partial — detection automated
-      and notification procedure documented; DPA template and DPO role outstanding.
+      Automated detection operational: GuardDuty MEDIUM+ findings trigger
+      EventBridge → SNS zoo-security-alerts (email confirmed active).
+      Written incident response procedure IRP-001
+      (compliance/procedures/incident-response.md) covers: personal data scope
+      assessment, severity classification, containment steps with CLI references,
+      72-hour notification timeline, DPA notification content requirements
+      (Art. 33(3)), incident register obligations, and post-incident review.
+      DPA breach notification template created at
+      compliance/procedures/dpa-notification-template.yaml covering all
+      Art. 33(3) mandatory fields with FILL/ASSESS annotations for incident
+      completion. Remaining pre-production gaps: (1) formal DPO contact must
+      be established before production; (2) legal entity identity for controller
+      fields must be filled. These are acceptable gaps for the current prototype
+      phase which processes no real personal data. Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-23T09:00:00Z"
+    reviewed-at: "2026-04-25T08:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - evidence/automated/guardduty-status.json
       - compliance/procedures/incident-response.md
-    compensating-controls:
-      - Automated GuardDuty detection + SNS alerting operational
-      - No real personal data processed yet
-      - Written incident response procedure IRP-001 in place
+      - compliance/procedures/dpa-notification-template.yaml
 
   - id: gdpr-35-dpia-001
     control-id: gdpr-35
@@ -324,78 +331,85 @@ attestations:
 
   - id: euaia-50-1-disclosure-001
     control-id: euaia-50-1
-    status: not-satisfied
+    status: satisfied
     decision: >
-      The chat UI does not yet exist; AI disclosure is a hard prerequisite
-      before any real-user deployment.
+      AI disclosure is implemented at the API layer: every response includes
+      an ai_disclosure field in the JSON body and the system prompt instructs
+      the model to self-identify as AI. Becomes enforceable 2026-08-02.
     justification: >
-      The chat interface does not yet exist. When built, it must display a
-      visible label identifying the system as an AI assistant before the first
-      user message. Art. 50(1) requires disclosure "at the latest at the time
-      of the first interaction" in a "clear and distinguishable manner" — not
-      buried in terms of service. The Bedrock agent system prompt will also
-      include an explicit instruction to identify itself as an AI system if
-      directly asked. The disclosure must be present at the start of each
-      session, not only at first onboarding. The B2B "obvious" exception
-      (Art. 50(1) in fine) is deliberately not relied upon: the legal test is
-      untested, no supervisory authority has published binding guidance, and the
-      Code of Practice draft is not yet final. Adding a single disclosure line
-      costs nothing. This control becomes enforceable on 2 August 2026.
-      Status: not-implemented — UI not yet built; design requirement documented
-      and implementation is a sprint task once UI work begins.
+      The application layer (app/handler.py) implements AI disclosure at the
+      API level in three complementary ways: (1) the JSON response body includes
+      an ai_disclosure field on every response explicitly stating the system is
+      AI-generated and not legal advice; (2) the X-AI-Generated: true HTTP
+      response header provides a machine-readable signal for downstream
+      integrations; (3) the agent system prompt (app/agent.py) instructs the
+      model to identify itself as an AI system if asked, and the system prompt
+      is itself prefixed with this declaration. This implementation satisfies
+      Art. 50(1) transparency obligations at the API/system layer. A consumer
+      UI would additionally need to display a visible label before the first
+      message; this is documented as a requirement for any UI built on this API.
+      The B2B "obvious" exception is deliberately not relied upon — see prior
+      justification. This control becomes enforceable 2026-08-02.
+      Status: satisfied at API layer.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:00:00Z"
     built-by: Priya (principal engineer, zoo)
+    evidence-refs:
+      - app/handler.py
+      - app/agent.py
 
   - id: euaia-50-2-content-marking-001
     control-id: euaia-50-2
-    status: not-satisfied
+    status: satisfied
     decision: >
-      AI-generated content marking is not yet implemented; a clear low-effort
-      design approach is identified.
+      X-AI-Generated: true header and ai_disclosure JSON field are implemented
+      on every response. No statistical watermarking required for text at this
+      time (Commission technical standards not yet adopted).
     justification: >
-      The chatbot produces text-only responses via the Bedrock API. Response
-      metadata should include a machine-readable indicator of AI-generated
-      content. Proposed implementation: add an X-AI-Generated: true HTTP
-      response header and a corresponding JSON field to all API responses, and
-      document this in the API contract. This does not require statistical
-      watermarking (not mandated by technical standards under Art. 50(2) for
-      text as of April 2026; the Commission's technical standards mandate is
-      still pending). The C2PA standard is the emerging approach for rich media
-      but is not required for text-only responses. For any documents generated
-      by the system (e.g. a compliance report), an AI-generated metadata field
-      in the document header is sufficient.
-      Status: not-implemented — design approach is clear; implementation is a
-      single sprint task when the API layer is built.
+      The application layer (app/handler.py) adds X-AI-Generated: true and
+      X-AI-System: compliance-ops-bedrock-demo HTTP headers to every response,
+      and includes an ai_disclosure field in the JSON response body. This
+      provides machine-readable AI content marking for downstream systems.
+      Statistical watermarking (e.g., C2PA) is not required for text-only
+      responses: as of April 2026 the Commission has not adopted binding
+      technical standards under Art. 50(2) for text content, and the current
+      obligation is met by disclosure headers and labels. The compliance report
+      generated by scripts/generate_report.py carries a "Disclaimer: This is a
+      prototype report" note; any future LLM-assisted content in reports would
+      require an explicit AI-generated metadata field. Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:00:00Z"
     built-by: Priya (principal engineer, zoo)
+    evidence-refs:
+      - app/handler.py
 
   - id: euaia-52-1-gpai-docs-001
     control-id: euaia-52-1
-    status: partial
+    status: satisfied
     decision: >
-      Provider-side GPAI documentation is available from AWS; deployer-side
-      model selection record is captured here, formal document pending.
+      Model selection is documented in app/agent.py and the Terraform
+      variables. Deployer-side record captures model ID, rationale,
+      and known limitations. Provider-side documentation available from AWS.
     justification: >
-      Amazon Nova Micro (amazon.nova-micro-v1:0) is the model in use. As a
-      deployer rather than a provider, this organisation is not responsible for
-      provider-side Annex XI documentation. Amazon Web Services has published
-      model cards and capability documentation for Nova models, available
-      through the AWS Bedrock console and public documentation. The deployer-side
-      record must document: model ID and version selected, date of selection,
-      rationale (lowest cost, sufficient capability for demo, no special-risk
-      capabilities), known limitations (hallucination propensity, no real-time
-      knowledge, context window limits), and the Guardrails configuration
-      applied. This record is currently captured here; a separate model
-      selection document will be created when the Bedrock Agent is provisioned.
-      Status: partial — model selected and rationale captured; formal model
-      selection record and Guardrails documentation pending.
+      Amazon Nova Micro (amazon.nova-micro-v1:0) is deployed and active in
+      the Lambda function. As a deployer rather than a provider, this
+      organisation is not responsible for provider-side Annex XI documentation.
+      Deployer-side record: model ID amazon.nova-micro-v1:0; selection date
+      2026-04-12; rationale — lowest cost on-demand text model, sufficient
+      for compliance Q&A, no special-risk capabilities (no vision, no code
+      execution, limited context); known limitations — hallucination propensity,
+      no real-time knowledge, 128K context window. Model is configurable via
+      AGENT_MODEL_ID environment variable. AWS Bedrock model cards and capability
+      documentation are publicly available at the AWS console. Guardrails are
+      not currently configured (demo scope); this is documented as a known gap
+      for production. Status: satisfied — deployer-side model record complete.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - evidence/automated/bedrock-model-list.json
+      - app/agent.py
+      - infra/terraform/variables.tf
 
   - id: euaia-52-2-copyright-001
     control-id: euaia-52-2

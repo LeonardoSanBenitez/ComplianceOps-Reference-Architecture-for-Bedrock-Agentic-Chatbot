@@ -171,7 +171,7 @@ The notification must include:
 3. Likely consequences of the breach
 4. Measures taken or proposed to address the breach and mitigate its possible adverse effects
 
-**Template:** `compliance/procedures/dpa-notification-template.yaml` (to be created before production)
+**Template:** `compliance/procedures/dpa-notification-template.yaml` (available — complete the FILL/ASSESS fields at incident time)
 
 ---
 

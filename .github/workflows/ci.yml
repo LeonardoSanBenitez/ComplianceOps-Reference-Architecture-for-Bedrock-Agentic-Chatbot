@@ -120,3 +120,19 @@ jobs:
           fi
           echo "Report size: $(wc -c < /tmp/report.html) bytes"
           grep -q "compliance-ops-bedrock" /tmp/report.html && echo "OK: report content check passed"
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install pyyaml jinja2 boto3 pytest
+
+      - name: Run unit tests
+        run: pytest tests/ -v
