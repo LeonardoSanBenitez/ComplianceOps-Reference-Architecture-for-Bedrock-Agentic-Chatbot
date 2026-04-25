@@ -6,7 +6,7 @@ A reference architecture for building a compliance-aware agentic chatbot on AWS 
 
 This repository is a blueprint, not a production system. It demonstrates by example how to structure compliance controls, evidence, and tooling. You are responsible for adapting, hardening, and extending it for your own environment.
 
-**Manual attestations in this repository are self-assessed and have not been independently audited. They are starting points, not conclusions.**
+**Manual attestations in this repository are self-assessed and have not been independently audited. They are starting points, not conclusions.** See [Compliance scope](#compliance-scope) for a precise statement of what this repository does and does not cover.
 
 ## What this repository includes
 
@@ -19,6 +19,8 @@ This repository is a blueprint, not a production system. It demonstrates by exam
 - Static compliance report generation (Jinja2, deterministic, no LLM-written content)
 - CI pipeline (GitHub Actions): mypy, YAML validation, OSCAL schema validation
 - Incident response procedure (IRP-001)
+- GDPR Art. 30 Record of Processing Activities entry (ROPA-001)
+- GDPR Art. 33 DPA breach notification template
 - Cost estimate at demo and moderate scale
 
 ## What this repository does not include (by design)
@@ -46,14 +48,12 @@ RegOps applies DevOps principles to regulatory compliance: controls are defined 
 
 ## Who this is for
 
-Compliance in a shipped product spans several teams:
+- A **DevOps engineer** who wants a concrete example of how OSCAL control catalogs map to Terraform resources and CI checks
+- A **compliance engineer** who needs to explain to leadership what Compliance-as-Code looks like in practice, with a working repo to point at
+- A **software architect** evaluating whether AWS Bedrock is a viable foundation for a GDPR- or EU-AI-Act-governed application
+- A **security engineer** who wants to see how automated evidence collection (CloudTrail, IAM, S3 config) integrates with structured attestations
 
-- **Leadership**: commitment, objectives, final decisions
-- **Legal and privacy**: contracts, regulatory interpretation
-- **Governance, risk, and security**: policies, risk assessments, audit preparation
-- **Product and engineering**: architecture, development, operations
-
-These groups should not work in silos. This repository demonstrates how their decisions can converge into code and structured evidence that is automatically checkable.
+This repository is not useful for reading — it is useful for forking, adapting, and deploying.
 
 ## Architecture
 
@@ -70,7 +70,7 @@ User → Lambda Function URL → Strands Agent (Nova Micro) → Bedrock Knowledg
 Components:
 
 - **Model**: Amazon Nova Micro (`amazon.nova-micro-v1:0`) — lowest-cost on-demand text model
-- **Orchestration**: [Strands SDK](https://github.com/strands-ai/strands) — lightweight Python agent framework
+- **Orchestration**: [Strands SDK](https://github.com/strands-ai/strands) — lightweight Python agent framework (open-source project, AWS-originated but not an AWS managed service; evaluate its maturity and support model before adopting in a production system)
 - **RAG**: Bedrock Knowledge Base backed by S3 Vectors — documents (README, OSCAL catalogs, IRP-001, attestations) are chunked and indexed for semantic retrieval
 - **Tools**: `retrieve_compliance_info`, `list_gdpr_controls`, `list_eu_ai_act_controls` — Strands tools that query the Knowledge Base
 - **Handler**: `app/handler.py` — Lambda entry point; parses request, invokes agent, returns JSON response with EU AI Act Art. 50 disclosure headers (see the EU AI Act Art. 50 Transparency Disclosure section below)
@@ -83,6 +83,8 @@ Controls are defined in OSCAL YAML. Two catalogs are included:
 |---------|------|----------|
 | GDPR | `compliance/catalogs/gdpr.yaml` | 12 controls across Arts. 5, 13, 17, 25, 32, 33 |
 | EU AI Act | `compliance/catalogs/eu-ai-act.yaml` | 8 controls (limited-risk chatbot classification) |
+
+**Important:** No official OSCAL catalogs for GDPR or the EU AI Act have been published by a standards body. Both catalogs in this repository were created for this project, based on the authors' own reading and mapping of the regulations. The control coverage and mapping choices reflect editorial judgments, not a standardised or authoritative interpretation. One of the contributions of this project is to provide a starting point for community-developed OSCAL catalogs for these regulations.
 
 Attestations (`attestations/`) provide prose justification for each control, including an honest assessment of gaps. Evidence artifacts (`evidence/automated/`) are collected by `scripts/collect_evidence.py` using boto3 (CloudTrail, IAM, S3).
 
@@ -151,7 +153,7 @@ aws s3 cp attestations/ s3://cob-kb-source-dev/attestations/ --recursive
 aws s3 cp compliance/procedures/ s3://cob-kb-source-dev/procedures/ --recursive
 
 KB_ID=$(terraform output -raw bedrock_kb_id)
-DS_ID=<data-source-id-from-terraform-output>
+DS_ID=$(terraform output -raw bedrock_kb_data_source_id)
 aws bedrock-agent start-ingestion-job --knowledge-base-id $KB_ID --data-source-id $DS_ID
 ```
 
@@ -179,7 +181,9 @@ curl -X POST <FUNCTION_URL> \
 
 ## EU AI Act Art. 50 Transparency Disclosure
 
-This system is a limited-risk AI system under EU AI Act Art. 6. It is subject to transparency obligations under Art. 50(1).
+**Risk classification:** This system does not fall under any of the high-risk categories listed in Annex III of the EU AI Act and is not covered by Art. 6(2).
+
+**Transparency obligation:** Independently of risk class, this system is an AI system intended to interact directly with natural persons. It is therefore subject to Art. 50(1) transparency obligations, which require that users be informed they are interacting with an AI system.
 
 Every response from this chatbot:
 - Carries an `X-AI-Generated: true` HTTP response header (machine-readable disclosure for downstream integrations)
@@ -217,7 +221,7 @@ compliance-ops-bedrock/
 ├── attestations/           # OSCAL-linked prose attestations for all controls
 ├── compliance/
 │   ├── catalogs/           # OSCAL YAML control catalogs (GDPR, EU AI Act)
-│   └── procedures/         # Operational procedures (IRP-001)
+│   └── procedures/         # Operational procedures (IRP-001, ROPA-001, DPA notification template)
 ├── evidence/
 │   └── automated/          # Evidence artifacts from collect_evidence.py
 ├── infra/

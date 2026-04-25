@@ -1,0 +1,154 @@
+# DPA Breach Notification Template — GDPR Art. 33
+# compliance-ops-bedrock — Personal Data Breach Notification
+#
+# HOW TO USE THIS TEMPLATE
+# ------------------------
+# 1. Fill in all fields marked with [FILL: ...].
+# 2. Fields marked [ASSESS: ...] require a case-specific legal/factual judgment.
+# 3. Remove this header block before submitting to the DPA.
+# 4. Retain a copy in the incident register (compliance/evidence/incident-register.yaml).
+# 5. Most EU DPAs provide an online notification form. This YAML is a structured
+#    internal record; the actual submission follows the DPA's channel and format.
+#    Common DPA portals:
+#      - CNIL (France): https://notifications.cnil.fr/notifications/
+#      - BfDI (Germany): https://www.bfdi.bund.de/
+#      - ICO (UK): https://ico.org.uk/for-organisations/report-a-breach/
+#      - DPC (Ireland): https://www.dataprotection.ie/
+#    Identify the correct DPA based on the controller's establishment in the EU.
+# 6. Art. 33(4) permits phased notification if not all information is available
+#    within 72 hours. Submit what is known and supplement without undue delay.
+
+---
+document_type: gdpr_art33_dpa_notification
+document_id: "[FILL: BREACH-YYYY-NNN — increment from incident register]"
+notification_date: "[FILL: ISO8601 date-time of notification submission]"
+incident_register_ref: "[FILL: incident register entry ID]"
+
+# --------------------------------------------------------------------------
+# Art. 33(3)(a) — Nature of the personal data breach
+# --------------------------------------------------------------------------
+breach_nature:
+  incident_id: "[FILL: same as incident_register_ref]"
+  detection_datetime: "[FILL: ISO8601 — when the controller first became aware]"
+  occurrence_datetime: "[FILL: ISO8601 — estimated time of the breach event, if known]"
+  discovery_source: "[FILL: GuardDuty alert / CloudTrail anomaly / manual discovery / customer report / other]"
+
+  breach_type:
+    confidentiality: "[FILL: true/false — unauthorised disclosure or access]"
+    integrity: "[FILL: true/false — unauthorised modification]"
+    availability: "[FILL: true/false — loss of access / destruction]"
+
+  affected_systems:
+    - "[FILL: e.g. cob-conv-logs-dev S3 bucket]"
+    - "[FILL: e.g. cob-sessions-dev DynamoDB table]"
+
+  description: |
+    [FILL: Plain-language description of what happened. Include:
+    - What event occurred (exfiltration, misconfiguration, ransomware, etc.)
+    - Which data was affected
+    - How it was discovered
+    - Initial containment actions taken
+    Keep factual; avoid speculation.]
+
+  data_subjects_affected:
+    approximate_count: "[FILL: number or range, e.g. '10–50' or 'unknown — under investigation']"
+    categories:
+      - "[FILL: e.g. chatbot users — pseudonymous session IDs and conversation transcripts]"
+    note: "[FILL: any relevant notes on how the count was estimated]"
+
+  personal_data_records_affected:
+    approximate_count: "[FILL: number of records or 'unknown']"
+    categories:
+      - "[FILL: e.g. conversation transcripts (free-text query logs)]"
+      - "[FILL: e.g. session metadata (pseudonymous UUIDs, timestamps)]"
+
+# --------------------------------------------------------------------------
+# Art. 33(3)(b) — Contact details
+# --------------------------------------------------------------------------
+controller_contact:
+  name: "[FILL: legal entity name of the controller]"
+  address: "[FILL: registered address]"
+  contact_person: "[FILL: name and role of the person handling this notification]"
+  email: "[FILL: direct email — not a generic mailbox]"
+  phone: "[FILL: direct phone number including country code]"
+  dpo_name: "[ASSESS: DPO name if one is appointed under Art. 37; otherwise state 'Not appointed — see note']"
+  dpo_email: "[ASSESS: DPO email if applicable]"
+  dpo_note: "[ASSESS: If DPO not required or not yet appointed, state reason]"
+
+# --------------------------------------------------------------------------
+# Art. 33(3)(c) — Likely consequences of the breach
+# --------------------------------------------------------------------------
+likely_consequences: |
+  [FILL: Describe the likely consequences for data subjects. Structure as:
+  1. Immediate risk: e.g. possible exposure of conversation content;
+     risk of re-identification; risk of phishing using disclosed information.
+  2. Downstream risk: e.g. if conversation content contains credentials,
+     financial information, or sensitive disclosures.
+  3. Mitigating factors: e.g. pseudonymisation of user_id; absence of
+     special category data; short retention window (30 days) limits historical
+     exposure.
+  Be honest. Do not minimise risks you cannot rule out.]
+
+impact_assessment:
+  special_category_data_involved: "[FILL: true/false — Art. 9 data]"
+  financial_data_involved: "[FILL: true/false]"
+  children_data_involved: "[FILL: true/false]"
+  data_already_public: "[FILL: true/false — e.g. if posted to a public forum]"
+  re_identification_risk: "[ASSESS: low/medium/high — given pseudonymisation approach]"
+  overall_risk_to_data_subjects: "[ASSESS: low/medium/high — per Art. 33(1) threshold reasoning]"
+
+# --------------------------------------------------------------------------
+# Art. 33(3)(d) — Measures taken or proposed
+# --------------------------------------------------------------------------
+measures_taken:
+  containment:
+    - "[FILL: e.g. IAM credentials revoked at HH:MM UTC]"
+    - "[FILL: e.g. S3 bucket access blocked at HH:MM UTC]"
+    - "[FILL: e.g. affected DynamoDB records deleted]"
+
+  evidence_preservation:
+    - "[FILL: e.g. CloudTrail snapshot taken for window YYYY-MM-DD HH:MM to HH:MM]"
+    - "[FILL: e.g. GuardDuty finding archived at finding ID]"
+
+  remediation_completed:
+    - "[FILL: e.g. root cause identified as misconfigured bucket policy; corrected at HH:MM]"
+    - "[FILL: e.g. Terraform state corrected and re-applied]"
+
+  remediation_planned:
+    - "[FILL: e.g. additional CloudWatch alarm for unexpected S3 public access changes]"
+    - "[FILL: e.g. DPIA to be completed before production re-launch]"
+
+  data_subject_notification:
+    required: "[ASSESS: true/false — per Art. 34 high-risk threshold]"
+    status: "[FILL: not required / notified / planned — with date if applicable]"
+    reasoning: "[ASSESS: brief reasoning for Art. 34 determination]"
+
+# --------------------------------------------------------------------------
+# Art. 33(4) — Phased notification (if applicable)
+# --------------------------------------------------------------------------
+phased_notification:
+  is_phased: "[FILL: true/false — true if submitting before full facts are known]"
+  missing_information: "[FILL: list any information not yet available at time of submission]"
+  supplement_expected_by: "[FILL: ISO8601 date — when supplementary information will be provided]"
+  reason_for_delay: "[FILL: reason full information is not yet available]"
+
+# --------------------------------------------------------------------------
+# Internal record fields (not submitted to DPA)
+# --------------------------------------------------------------------------
+internal:
+  notification_submitted_by: "[FILL: name of person who submitted to DPA]"
+  dpa_submission_channel: "[FILL: online portal / email / postal]"
+  dpa_reference_number: "[FILL: reference number assigned by DPA, if provided]"
+  submission_confirmed_at: "[FILL: ISO8601 date-time of DPA confirmation receipt]"
+  deadline_72h_expires_at: "[FILL: ISO8601 date-time — awareness time + 72h]"
+  submitted_on_time: "[FILL: true/false]"
+  late_submission_reason: "[FILL: if submitted after 72h, documented reason per Art. 33(1)]"
+
+# --------------------------------------------------------------------------
+# Revision history
+# --------------------------------------------------------------------------
+revision_history:
+  - version: "template-1.0"
+    date: "2026-04-13"
+    author: Priya
+    change: Initial template — covers Art. 33(3) mandatory fields plus Art. 34 assessment

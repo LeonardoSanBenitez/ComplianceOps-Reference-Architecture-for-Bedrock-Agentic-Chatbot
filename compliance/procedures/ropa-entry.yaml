@@ -1,0 +1,198 @@
+# Record of Processing Activities — GDPR Art. 30
+# compliance-ops-bedrock — AI Compliance Chatbot
+
+---
+document_id: ROPA-001
+version: "1.0"
+effective_date: "2026-04-13"
+owner: Principal Engineer
+review_cadence: annually or before any material change to the system
+
+# --------------------------------------------------------------------------
+# Art. 30(1)(a) — Controller identification
+# --------------------------------------------------------------------------
+controller:
+  name: "[Legal entity name — to be filled before production deployment]"
+  contact: leofloripa1020@gmail.com
+  eu_representative: "[Required if controller not established in EU — to be determined]"
+  dpo: "[DPO contact — to be appointed before production; not required for demo phase]"
+  note: >
+    For the current prototype/demo phase this system is operated by a single individual.
+    A production deployment requires identifying the legal controller, appointing a DPO
+    if required under Art. 37, and completing entries marked [TBD].
+
+# --------------------------------------------------------------------------
+# Art. 30(1)(b) — Purposes of processing
+# --------------------------------------------------------------------------
+processing_activity:
+  name: "AI compliance chatbot — user query processing"
+  description: >
+    Users submit natural-language questions about GDPR and EU AI Act compliance.
+    The system retrieves relevant compliance documentation, invokes an LLM
+    (Amazon Nova Micro via AWS Bedrock), and returns a natural-language answer.
+    Session context is maintained across multiple turns within a single session.
+
+  purposes:
+    - id: PURPOSE-001
+      description: >
+        Answering user queries about GDPR and EU AI Act controls and procedures
+        applicable to the compliance-ops-bedrock reference architecture.
+      legal_basis: "[Art. 6(1) basis — to be determined at production; likely legitimate interest
+        or contract performance depending on deployment context. Demo phase processes no
+        real personal data.]"
+
+# --------------------------------------------------------------------------
+# Art. 30(1)(c) — Categories of data subjects
+# --------------------------------------------------------------------------
+  data_subjects:
+    - category: Users of the chatbot interface
+      description: >
+        Any natural person who submits a query to the Lambda Function URL.
+        In demo/prototype phase: developers and reviewers only; no end-users.
+      note: >
+        The system does not require authentication. User identity is not
+        actively collected. The user_id field in DynamoDB is a session-scoped
+        pseudonymous identifier generated at session start, not linked to a
+        real-world identity in the prototype phase.
+
+# --------------------------------------------------------------------------
+# Art. 30(1)(d) — Categories of personal data
+# --------------------------------------------------------------------------
+  personal_data_categories:
+    - category: Query text (conversation transcripts)
+      sensitivity: standard
+      description: >
+        Free-text natural language input submitted by the user. May incidentally
+        contain personal data if the user includes names, contact details, or
+        other identifiers in their query. The system does not instruct users to
+        submit personal data and does not require it for its function.
+      collection_point: Lambda Function URL request body
+      storage_location: "S3 bucket: cob-conv-logs-dev (conversation log files)"
+      retention: 30 days (S3 lifecycle policy)
+
+    - category: Session metadata
+      sensitivity: standard
+      description: >
+        Pseudonymous session identifier (UUID generated per session), session
+        start timestamp, message count. Does not include IP address at the
+        application layer (Lambda Function URL logs IP at AWS infrastructure
+        level only).
+      collection_point: Lambda handler (generated, not collected from user)
+      storage_location: "DynamoDB table: cob-sessions-dev"
+      retention: 30 days (DynamoDB TTL)
+
+    - category: Infrastructure access logs (indirect)
+      sensitivity: standard
+      description: >
+        AWS CloudTrail logs and Lambda access logs include the source IP address
+        of API callers. These are infrastructure logs, not application-layer
+        collection. Stored in CloudTrail S3 bucket managed separately from this
+        project.
+      collection_point: AWS managed infrastructure logging
+      storage_location: CloudTrail S3 bucket (see landing zone configuration)
+      retention: Per CloudTrail bucket lifecycle policy (landing zone)
+
+  special_category_data: false
+  special_category_note: >
+    The system does not knowingly collect or process special category data under
+    Art. 9. Query text is unstructured and may incidentally contain such data;
+    this is considered incidental and the system is not designed or instructed to
+    process it.
+
+# --------------------------------------------------------------------------
+# Art. 30(1)(e) — Categories of recipients
+# --------------------------------------------------------------------------
+  recipients:
+    - name: Amazon Web Services (AWS)
+      role: Processor
+      basis: >
+        AWS Data Processing Addendum (DPA) is part of the AWS Customer Agreement.
+        Accepted at account creation. AWS processes data as a processor under
+        Art. 28 GDPR when running AWS Bedrock inference and S3 storage on behalf
+        of the controller.
+      services_used:
+        - AWS Lambda (compute)
+        - Amazon Bedrock (LLM inference — Nova Micro model)
+        - Amazon S3 (conversation log storage, knowledge base documents)
+        - Amazon DynamoDB (session metadata)
+        - Amazon KMS (encryption key management)
+      data_transfer: within AWS us-east-1 region only (no cross-region replication configured)
+
+    - name: Amazon Bedrock (foundation model provider — Amazon)
+      role: Sub-processor via AWS
+      basis: >
+        Query text is sent to Amazon Nova Micro model via AWS Bedrock API for inference.
+        Amazon's model training data practices (whether inference data is used for
+        training) are governed by the AWS Bedrock service terms. As of the effective date
+        of this document, AWS Bedrock does not use customer prompt/response data to
+        train foundation models unless explicitly opted in (AWS Bedrock model training opt-out
+        is the default). This must be re-verified at production deployment.
+      note: >
+        Review AWS Bedrock data handling terms at:
+        https://aws.amazon.com/service-terms/ (section 50 — Bedrock)
+
+  third_party_transfers_outside_eu: false
+  third_party_transfer_note: >
+    Data is processed in AWS us-east-1 (N. Virginia, USA). This constitutes a
+    transfer of personal data outside the EU/EEA under GDPR Chapter V.
+    Transfer mechanism: Standard Contractual Clauses (SCCs) embedded in the AWS
+    Data Processing Addendum (DPA), supplemented by AWS's commitments under the
+    EU-US Data Privacy Framework (where applicable).
+    This must be formally assessed before production deployment.
+
+# --------------------------------------------------------------------------
+# Art. 30(1)(f) — Retention periods
+# --------------------------------------------------------------------------
+  retention_summary:
+    - data: Conversation transcripts (S3)
+      retention: 30 days
+      basis: Minimum operational necessity for debugging; no business need beyond this
+    - data: Session metadata (DynamoDB)
+      retention: 30 days (TTL)
+      basis: Session continuity during active use; no long-term need
+    - data: Infrastructure logs (CloudTrail)
+      retention: Per landing zone policy
+      basis: Security audit and compliance monitoring
+
+# --------------------------------------------------------------------------
+# Art. 30(1)(g) — Security measures (high-level reference)
+# --------------------------------------------------------------------------
+  security_measures:
+    encryption_at_rest: >
+      All persistent data encrypted with customer-managed KMS key (alias/cob-main-dev).
+      S3 buckets: SSE-KMS. DynamoDB: encryption at rest enabled.
+    encryption_in_transit: >
+      All communication over TLS. Lambda Function URL enforces HTTPS.
+      AWS internal service calls over TLS.
+    access_control: >
+      IAM least-privilege roles for Lambda and Bedrock KB.
+      S3 buckets: no public access (Block Public Access enabled on cob-conv-logs-dev and cob-kb-source-dev).
+      Lambda Function URL: public (unauthenticated) — required for demo; must be protected in production.
+    monitoring: >
+      AWS GuardDuty active. CloudTrail enabled. SNS alerts for MEDIUM+ GuardDuty findings.
+      See incident response procedure: compliance/procedures/incident-response.md (IRP-001).
+    pseudonymisation: >
+      User session identifiers are UUIDs generated at session start; not linked to
+      real-world identity in the prototype. Full pseudonymisation assessment required before production.
+
+# --------------------------------------------------------------------------
+# DPIA assessment
+# --------------------------------------------------------------------------
+  dpia_required_assessment:
+    conclusion: deferred
+    reasoning: >
+      The current system operates in prototype/demo phase with no real personal data.
+      A DPIA is required before production deployment if the system processes personal
+      data at scale, given the use of systematic automated processing (LLM inference)
+      and potential for large-scale processing. The controller should conduct a DPIA
+      under Art. 35 when preparing for production.
+    trigger: Before any production deployment processing real user personal data
+
+# --------------------------------------------------------------------------
+# Revision history
+# --------------------------------------------------------------------------
+revision_history:
+  - version: "1.0"
+    date: "2026-04-13"
+    author: Priya
+    change: Initial version — prototype/demo scope, no real personal data

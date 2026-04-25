@@ -3,6 +3,11 @@ output "bedrock_kb_id" {
   value       = aws_bedrockagent_knowledge_base.main.id
 }
 
+output "bedrock_kb_data_source_id" {
+  description = "Bedrock Knowledge Base data source ID — required for start-ingestion-job calls"
+  value       = aws_bedrockagent_data_source.readme.data_source_id
+}
+
 output "kb_source_bucket_name" {
   description = "S3 bucket name for KB source documents — upload docs here before syncing the KB"
   value       = aws_s3_bucket.kb_source.bucket
