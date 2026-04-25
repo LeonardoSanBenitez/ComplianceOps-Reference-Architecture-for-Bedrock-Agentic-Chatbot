@@ -213,7 +213,9 @@ infra/terraform/*.tfstate.backup
 infra/terraform/*.tfplan
 
 # Generated report (not committed — served from S3)
-report/
+# Use report/* (not report/) so that report/.gitkeep can be tracked via negation.
+report/*
+!report/.gitkeep
 
 # Sensitive evidence (can contain account metadata)
 # Note: evidence/automated/ IS committed for now (demo/prototype)

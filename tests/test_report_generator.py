@@ -247,3 +247,87 @@ class TestMainIntegration:
                 "--evidence-dir", str(EVIDENCE_DIR) if EVIDENCE_DIR.exists() else str(CATALOG_DIR),
             ])
             assert exit_code != 0, "main() should fail when catalog dir is missing"
+
+
+# ---------------------------------------------------------------------------
+# collect_evidence: import and CLI smoke tests (no AWS credentials required)
+# ---------------------------------------------------------------------------
+
+
+class TestCollectEvidenceModule:
+    """Verify that scripts/collect_evidence.py imports cleanly and its CLI is usable."""
+
+    def test_module_imports_cleanly(self) -> None:
+        """Import must succeed without any AWS calls or environment variables."""
+        import importlib
+        mod = importlib.import_module("scripts.collect_evidence")
+        # Core public names must be present
+        assert hasattr(mod, "main"), "collect_evidence.main not found after import"
+        assert hasattr(mod, "make_artifact"), "collect_evidence.make_artifact not found"
+        assert callable(mod.main)
+        assert callable(mod.make_artifact)
+
+    def test_make_artifact_returns_expected_schema(self) -> None:
+        """make_artifact should return a dict with all required envelope fields."""
+        import importlib
+        mod = importlib.import_module("scripts.collect_evidence")
+        artifact = mod.make_artifact(
+            collector_id="test-collector",
+            description="unit test artifact",
+            controls=["gdpr-32"],
+            data={"key": "value"},
+        )
+        required_fields = {
+            "schema_version", "collector_id", "description",
+            "collected_at", "status", "controls", "data",
+        }
+        assert required_fields <= set(artifact.keys()), (
+            f"Artifact missing fields: {required_fields - set(artifact.keys())}"
+        )
+        assert artifact["collector_id"] == "test-collector"
+        assert artifact["controls"] == ["gdpr-32"]
+        assert artifact["status"] == "collected"
+
+    def test_cli_help_exits_zero(self) -> None:
+        """--help must print usage and exit 0, with no AWS calls."""
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, str(REPO_ROOT / "scripts" / "collect_evidence.py"), "--help"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, (
+            f"--help exited {result.returncode}; stderr: {result.stderr}"
+        )
+        assert "usage" in result.stdout.lower() or "collect" in result.stdout.lower(), (
+            f"--help output looks unexpected: {result.stdout[:200]}"
+        )
+
+    def test_main_returns_nonzero_without_credentials(self) -> None:
+        """main() must return 1 (not crash) when AWS credentials are absent."""
+        import importlib
+        import os
+        mod = importlib.import_module("scripts.collect_evidence")
+        # Strip credential env vars for this call so it hits the NoCredentialsError path.
+        clean_env = {
+            k: v for k, v in os.environ.items()
+            if k not in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY",
+                         "AWS_SESSION_TOKEN", "AWS_PROFILE",
+                         "AWS_DEFAULT_PROFILE", "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI",
+                         "AWS_CONTAINER_CREDENTIALS_FULL_URI")
+        }
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, "-c",
+             "import sys; sys.path.insert(0, '.'); "
+             "from scripts.collect_evidence import main; sys.exit(main())"],
+            capture_output=True,
+            text=True,
+            env=clean_env,
+            cwd=str(REPO_ROOT),
+        )
+        # Exit code must be 1 (credential error) — not 0, and not a crash (2+)
+        assert result.returncode == 1, (
+            f"Expected exit code 1 without credentials, got {result.returncode}; "
+            f"stderr: {result.stderr}"
+        )

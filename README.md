@@ -225,8 +225,7 @@ compliance-ops-bedrock/
 ├── evidence/
 │   └── automated/          # Evidence artifacts from collect_evidence.py
 ├── infra/
-│   ├── ci/                 # CodeBuild buildspec files
-│   └── terraform/          # All infrastructure definitions
+│   └── terraform/          # All infrastructure definitions (buildspecs are inline in codebuild.tf)
 ├── report/                 # Jinja2 templates for compliance report
 ├── scripts/                # Evidence collection and report generation scripts
 ├── COST.md                 # Cost estimate
