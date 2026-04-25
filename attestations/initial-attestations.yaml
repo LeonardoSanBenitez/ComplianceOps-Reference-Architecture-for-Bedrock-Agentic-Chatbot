@@ -309,25 +309,28 @@ attestations:
 
   - id: euaia-4-literacy-001
     control-id: euaia-4
-    status: partial
+    status: satisfied
     decision: >
-      Implicit AI literacy exists within the engineering team; formal
-      documented acknowledgement is outstanding.
+      AI literacy acknowledgement documented in HOP-001 Section 8. The
+      operating engineer has formally acknowledged understanding of the
+      system's capabilities, limitations, and transparency obligations.
     justification: >
-      The engineering team has direct knowledge of the system architecture,
-      model capabilities, and limitations, as documented in this compliance
-      attestation and the system README. Before deploying to any users beyond
-      the engineering team, the team will complete a documented AI literacy
-      review: a brief written acknowledgement that each operator understands
-      (1) what the model can and cannot do, (2) the risk classification
-      rationale, (3) the transparency obligations, and (4) the escalation path
-      for problematic outputs. For a small team demo system, this acknowledgement
-      record satisfies the proportionality principle of Art. 4.
-      Status: partial — implicit literacy exists; formal documented
-      acknowledgement outstanding.
+      The human oversight procedure (HOP-001, compliance/procedures/
+      human-oversight-procedure.md) includes an AI Literacy Record in
+      Section 8 documenting that the principal engineer has reviewed the
+      system prompt, risk classification, EU AI Act compliance section,
+      and disclosure requirements. The record confirms understanding of:
+      (1) hallucination risk and knowledge cutoff, (2) limited-risk
+      classification rationale, (3) Art. 50(1) transparency obligations,
+      (4) escalation path and override authority. For a small-team demo
+      system this satisfies the proportionality principle of Art. 4.
+      The record must be updated whenever a new person is granted operator
+      access. Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:30:00Z"
     built-by: Priya (principal engineer, zoo)
+    evidence-refs:
+      - compliance/procedures/human-oversight-procedure.md
 
   - id: euaia-50-1-disclosure-001
     control-id: euaia-50-1
@@ -434,29 +437,30 @@ attestations:
 
   - id: euaia-deployer-1-oversight-001
     control-id: euaia-deployer-1
-    status: partial
+    status: satisfied
     decision: >
-      Engineering team provides oversight during development; organisational
-      oversight procedure for user-facing deployment is not yet documented.
+      Human oversight procedure HOP-001 written and committed. Designated
+      oversight role, monitoring activities, feedback mechanism, known
+      limitations, and override authority are all documented. Bedrock
+      Guardrails are a known gap for production but are not required for
+      the current prototype.
     justification: >
-      Human oversight in the current prototype consists of the engineering team
-      reviewing system outputs during development. For a user-facing deployment,
-      the following must be implemented and documented: (1) a designated person
-      responsible for monitoring chatbot outputs, (2) a mechanism for users to
-      flag problematic responses (feedback button or email), (3) a defined
-      review cadence (weekly review of flagged interactions), (4) an escalation
-      path if a serious issue is identified, (5) Bedrock Guardrails configuration
-      blocking harmful content categories. Items 1-4 are organisational and
-      require a brief procedure document. Item 5 is a technical action item in
-      the Bedrock configuration. This control is modelled as a template even
-      though the system is not high-risk: the question of what meaningful human
-      oversight looks like versus ceremonial oversight is the most instructive
-      aspect of this compliance layer.
-      Status: partial — technical oversight via Guardrails designed;
-      organisational oversight procedure not yet documented.
+      HOP-001 (compliance/procedures/human-oversight-procedure.md) defines:
+      (1) designated oversight role (principal engineer), (2) monitoring
+      activities — automated (GuardDuty, CloudTrail, Lambda logs) and periodic
+      manual (weekly review during active use), (3) user feedback mechanism
+      (defined for future public deployment), (4) known limitations requiring
+      human judgment (hallucination, knowledge cutoff, scope, jurisdiction),
+      (5) human override authority (take offline, update system prompt, update
+      KB, escalate). AI literacy record (Section 8) confirms the operator
+      understands system limitations. Bedrock Guardrails (harmful content
+      blocking) are documented as a known gap before any public deployment;
+      this is acceptable at prototype phase. Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-13T17:30:00Z"
+    reviewed-at: "2026-04-25T08:30:00Z"
     built-by: Priya (principal engineer, zoo)
+    evidence-refs:
+      - compliance/procedures/human-oversight-procedure.md
 
   - id: euaia-deployer-2-risk-class-001
     control-id: euaia-deployer-2
