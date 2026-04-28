@@ -13,7 +13,7 @@ review_cadence: annually or before any material change to the system
 # --------------------------------------------------------------------------
 controller:
   name: "[Legal entity name — to be filled before production deployment]"
-  contact: leofloripa1020@gmail.com
+  contact: contact@example.com  # Replace with actual contact before production deployment
   eu_representative: "[Required if controller not established in EU — to be determined]"
   dpo: "[DPO contact — to be appointed before production; not required for demo phase]"
   note: >

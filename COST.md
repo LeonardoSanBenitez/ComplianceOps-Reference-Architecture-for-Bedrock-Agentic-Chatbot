@@ -110,11 +110,11 @@ Before `terraform apply`:
    ```bash
    cd infra/terraform
    terraform init
-   terraform plan -var="aws_account_id=725533536670"
+   terraform plan -var="aws_account_id=REDACTED-ACCOUNT-ID"
    ```
 4. Apply:
    ```bash
-   terraform apply -var="aws_account_id=725533536670"
+   terraform apply -var="aws_account_id=REDACTED-ACCOUNT-ID"
    ```
 5. After apply, upload KB source documents:
    ```bash

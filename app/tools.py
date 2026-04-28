@@ -20,7 +20,10 @@ _bedrock_runtime = boto3.client("bedrock-agent-runtime", region_name="us-east-1"
 
 # Knowledge Base ID — injected via environment variable at Lambda deploy time.
 import os
-_KB_ID = os.environ.get("KNOWLEDGE_BASE_ID", "3TVGH0TAFE")
+_KB_ID_ENV = os.environ.get("KNOWLEDGE_BASE_ID")
+if not _KB_ID_ENV:
+    raise RuntimeError("KNOWLEDGE_BASE_ID environment variable is required")
+_KB_ID: str = _KB_ID_ENV
 
 
 @tool

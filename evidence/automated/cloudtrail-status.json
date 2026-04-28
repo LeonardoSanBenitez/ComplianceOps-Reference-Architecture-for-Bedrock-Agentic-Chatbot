@@ -10,14 +10,14 @@
     "trailList": [
         {
             "Name": "management-events",
-            "S3BucketName": "aws-cloudtrail-logs-725533536670-804ebb20",
+            "S3BucketName": "aws-cloudtrail-logs-REDACTED-ACCOUNT-ID-804ebb20",
             "IncludeGlobalServiceEvents": true,
             "IsMultiRegionTrail": true,
             "HomeRegion": "us-east-1",
-            "TrailARN": "arn:aws:cloudtrail:us-east-1:725533536670:trail/management-events",
+            "TrailARN": "arn:aws:cloudtrail:us-east-1:REDACTED-ACCOUNT-ID:trail/management-events",
             "LogFileValidationEnabled": true,
-            "CloudWatchLogsLogGroupArn": "arn:aws:logs:us-east-1:725533536670:log-group:/aws/cloudtrail/management-events:*",
-            "CloudWatchLogsRoleArn": "arn:aws:iam::725533536670:role/cloudtrail-cloudwatch-logs-role",
+            "CloudWatchLogsLogGroupArn": "arn:aws:logs:us-east-1:REDACTED-ACCOUNT-ID:log-group:/aws/cloudtrail/management-events:*",
+            "CloudWatchLogsRoleArn": "arn:aws:iam::REDACTED-ACCOUNT-ID:role/cloudtrail-cloudwatch-logs-role",
             "HasCustomEventSelectors": true,
             "HasInsightSelectors": false,
             "IsOrganizationTrail": false

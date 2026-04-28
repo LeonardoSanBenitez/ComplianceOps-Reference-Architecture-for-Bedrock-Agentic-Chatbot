@@ -7,7 +7,7 @@
   "controls": ["gdpr-5-1-f", "gdpr-32"],
   "data": {
     "buckets": [
-    "aws-cloudtrail-logs-725533536670-804ebb20"
+    "aws-cloudtrail-logs-REDACTED-ACCOUNT-ID-804ebb20"
 ],
     "note": "See individual bucket files for encryption/versioning/pab details"
   }

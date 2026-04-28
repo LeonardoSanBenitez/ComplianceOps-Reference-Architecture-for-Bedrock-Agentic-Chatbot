@@ -42,7 +42,7 @@ monitoring at a level proportionate to the risk level (limited-risk).
 
 | Role | Responsibility | Contact |
 |------|---------------|---------|
-| Principal Engineer | Monitors system behaviour, reviews flagged responses, decides on corrective action | leofloripa1020@gmail.com |
+| Principal Engineer | Monitors system behaviour, reviews flagged responses, decides on corrective action | contact@example.com <!-- Replace with actual contact before production deployment --> |
 
 **Note for production deployment:** If this system is made available to external users,
 a dedicated person must be assigned to the oversight role (separate from the developer).

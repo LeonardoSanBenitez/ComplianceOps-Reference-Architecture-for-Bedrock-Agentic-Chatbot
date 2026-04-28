@@ -201,7 +201,7 @@ The notification must include:
 
 | Contact | Details |
 |---------|---------|
-| AWS account email | leofloripa1020@gmail.com |
+| AWS account email | contact@example.com |  <!-- Replace with actual contact before production deployment -->
 | AWS Support | Via AWS Console → Support Center (current plan: Basic) |
 | SNS alert topic | zoo-security-alerts (configured in landing zone) |
 | EU DPA (if needed) | Depends on controller's establishment; identify before production |
