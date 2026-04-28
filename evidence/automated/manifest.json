@@ -2,7 +2,14 @@
   "schema_version": "1",
   "collected_at": "2026-04-12T21:26:45Z",
   "region": "us-east-1",
-  "artifacts": [],
+  "artifacts": [
+    "guardduty-status.json",
+    "cloudtrail-status.json",
+    "iam-password-policy.json",
+    "s3-buckets.json",
+    "bedrock-model-list.json",
+    "billing-alarms.json"
+  ],
   "collection_errors": 0,
-  "note": "Evidence collected by scripts/collect_evidence.py (manual run via AWS CLI during prototype phase)"
+  "note": "Evidence collected by scripts/collect_evidence.py (manual run via AWS CLI during prototype phase). Re-collect with scripts/collect_evidence.py before audit."
 }
