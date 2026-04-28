@@ -9,6 +9,8 @@ variable "environment" {
   description = "Deployment environment (dev / staging / prod)"
   default     = "dev"
 
+  # Per-environment overrides live in infra/terraform/environments/<env>.tfvars
+  # Usage: terraform apply -var-file=environments/dev.tfvars -var="aws_account_id=<ID>"
   validation {
     condition     = contains(["dev", "staging", "prod"], var.environment)
     error_message = "environment must be one of: dev, staging, prod"
