@@ -229,10 +229,22 @@ resource "aws_iam_role_policy" "codebuild_tf_s3" {
         Sid    = "S3BucketConfigRead"
         Effect = "Allow"
         Action = [
-          # Terraform provider reads accelerate configuration during refresh.
+          # The Terraform AWS provider reads all these S3 bucket attributes
+          # during state refresh, even if they are not managed by this config.
           "s3:GetAccelerateConfiguration",
+          "s3:GetAnalyticsConfiguration",
           "s3:GetBucketCORS",
-          "s3:GetBucketWebsite"
+          "s3:GetBucketIntelligentTieringConfiguration",
+          "s3:GetBucketNotification",
+          "s3:GetBucketObjectLockConfiguration",
+          "s3:GetBucketWebsite",
+          "s3:GetInventoryConfiguration",
+          "s3:GetMetricsConfiguration",
+          "s3:GetReplicationConfiguration",
+          "s3:ListBucketAnalyticsConfigurations",
+          "s3:ListBucketIntelligentTieringConfigurations",
+          "s3:ListBucketInventoryConfigurations",
+          "s3:ListBucketMetricsConfigurations"
         ]
         Resource = [
           "arn:aws:s3:::${var.project_name}-*",
