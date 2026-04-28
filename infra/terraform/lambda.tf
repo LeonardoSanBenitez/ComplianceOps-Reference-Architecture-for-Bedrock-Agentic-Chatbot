@@ -63,6 +63,22 @@ resource "aws_ecr_lifecycle_policy" "app" {
   })
 }
 
+# ── CloudWatch log group (pre-created with CMK encryption) ────────────────────
+#
+# Lambda auto-creates a log group on first invocation without CMK encryption.
+# Pre-creating it here with kms_key_id satisfies the attestation claim that
+# "all persistent data encrypted with customer-managed KMS key".
+
+resource "aws_cloudwatch_log_group" "lambda" {
+  name              = "/aws/lambda/${local.lambda_function_name}"
+  kms_key_id        = aws_kms_key.main.arn
+  retention_in_days = 30
+
+  tags = {
+    Name = "/aws/lambda/${local.lambda_function_name}"
+  }
+}
+
 # ── Lambda function (container image) ─────────────────────────────────────────
 #
 # The Lambda function itself is NOT managed by Terraform. It is created and
@@ -215,6 +231,18 @@ resource "aws_codebuild_project" "app_deploy" {
       name  = "AGENT_MODEL_ID"
       value = var.agent_foundation_model_id
     }
+    environment_variable {
+      name  = "DYNAMODB_TABLE"
+      value = aws_dynamodb_table.conversation_sessions.name
+    }
+    environment_variable {
+      name  = "CONV_LOG_BUCKET"
+      value = local.conv_log_bucket_name
+    }
+    environment_variable {
+      name  = "RETENTION_DAYS"
+      value = tostring(var.s3_log_expiration_days)
+    }
   }
 
   source {
@@ -258,7 +286,7 @@ resource "aws_codebuild_project" "app_deploy" {
                   --description "Compliance chatbot Lambda (Strands + Bedrock Nova Micro)" \
                   --timeout 60 \
                   --memory-size 512 \
-                  --environment "Variables={KNOWLEDGE_BASE_ID=$KNOWLEDGE_BASE_ID,AGENT_MODEL_ID=$AGENT_MODEL_ID,CORS_ORIGIN=*,LOG_LEVEL=INFO}" \
+                  --environment "Variables={KNOWLEDGE_BASE_ID=$KNOWLEDGE_BASE_ID,AGENT_MODEL_ID=$AGENT_MODEL_ID,CORS_ORIGIN=*,LOG_LEVEL=INFO,DYNAMODB_TABLE=$DYNAMODB_TABLE,CONV_LOG_BUCKET=$CONV_LOG_BUCKET,RETENTION_DAYS=$RETENTION_DAYS}" \
                   --region $AWS_DEFAULT_REGION \
                   --no-cli-pager
                 echo "Waiting for function to become active"

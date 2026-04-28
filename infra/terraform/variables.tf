@@ -45,19 +45,15 @@ variable "embedding_model_id" {
 
 # ── Retention / lifecycle ──────────────────────────────────────────────────────
 
-variable "conversation_log_retention_days" {
-  type        = number
-  description = "DynamoDB TTL in days for conversation logs (GDPR Art. 5(1)(e))"
-  default     = 30
-
-  validation {
-    condition     = var.conversation_log_retention_days >= 7 && var.conversation_log_retention_days <= 365
-    error_message = "conversation_log_retention_days must be between 7 and 365"
-  }
-}
-
 variable "s3_log_expiration_days" {
   type        = number
-  description = "S3 lifecycle expiration for conversation log objects"
+  description = "S3 lifecycle expiration for conversation log objects and DynamoDB TTL days"
   default     = 30
+}
+
+# ── Alerting ───────────────────────────────────────────────────────────────────
+
+variable "alert_email" {
+  type        = string
+  description = "Email address for GuardDuty MEDIUM+ security alert notifications. Required — no default."
 }

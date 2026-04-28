@@ -131,7 +131,7 @@ processing_activity:
         Review AWS Bedrock data handling terms at:
         https://aws.amazon.com/service-terms/ (section 50 — Bedrock)
 
-  third_party_transfers_outside_eu: false
+  third_party_transfers_outside_eu: true
   third_party_transfer_note: >
     Data is processed in AWS us-east-1 (N. Virginia, USA). This constitutes a
     transfer of personal data outside the EU/EEA under GDPR Chapter V.

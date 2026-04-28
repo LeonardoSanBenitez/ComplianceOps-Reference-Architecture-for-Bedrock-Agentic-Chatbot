@@ -88,20 +88,28 @@ attestations:
     decision: >
       Both account-level and application-level security controls are deployed
       and evidenced. KMS encryption, TLS, least-privilege IAM, GuardDuty,
-      and CloudTrail are all active.
+      and CloudTrail are all active. Lambda CloudWatch log group is
+      pre-created with CMK encryption (aws_cloudwatch_log_group.lambda in
+      infra/terraform/lambda.tf). EventBridge -> SNS alert routing for
+      GuardDuty MEDIUM+ findings is defined in infra/terraform/monitoring.tf.
     justification: >
-      Account-level controls: GuardDuty active (detector f0cec0ab8c944e358f7992966bdb3605),
-      CloudTrail with 90-day retention and S3 delivery, IAM password policy (16+ chars),
-      account-level S3 public access block. Application-level controls deployed
-      as of 2026-04-23: customer-managed KMS key (alias/cob-main-dev) encrypts
-      all S3 buckets and DynamoDB at rest. Lambda Function URL enforces HTTPS.
-      IAM roles for Lambda (cob-lambda-dev) and Bedrock KB (cob-bedrock-kb-dev)
-      follow least-privilege. S3 buckets cob-conv-logs-dev and cob-kb-source-dev
-      have Block Public Access enabled. Remaining minor gap: no scheduled access
-      review cadence is documented, but given the small team size this is
-      low-risk. Status: satisfied.
+      Account-level controls: GuardDuty active (detector
+      f0cec0ab8c944e358f7992966bdb3605), CloudTrail with 90-day retention and
+      S3 delivery, IAM password policy (16+ chars), account-level S3 public
+      access block. Application-level controls deployed as of 2026-04-23:
+      customer-managed KMS key (alias/cob-main-dev) encrypts all S3 buckets,
+      DynamoDB, and the Lambda CloudWatch log group at rest. The log group
+      /aws/lambda/cob-chat-dev is pre-created via aws_cloudwatch_log_group
+      in lambda.tf with kms_key_id set to aws_kms_key.main.arn and 30-day
+      retention. Lambda Function URL enforces HTTPS. IAM roles for Lambda
+      (cob-lambda-dev) and Bedrock KB (cob-bedrock-kb-dev) follow
+      least-privilege. S3 buckets cob-conv-logs-dev and cob-kb-source-dev
+      have Block Public Access enabled. GuardDuty MEDIUM+ findings route to
+      SNS zoo-security-alerts via EventBridge (infra/terraform/monitoring.tf).
+      Remaining minor gap: no scheduled access review cadence documented,
+      but given the small team size this is low-risk. Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-25T08:00:00Z"
+    reviewed-at: "2026-04-28T00:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - evidence/automated/guardduty-status.json
@@ -109,6 +117,8 @@ attestations:
       - evidence/automated/iam-password-policy.json
       - infra/terraform/iam.tf
       - infra/terraform/s3.tf
+      - infra/terraform/lambda.tf
+      - infra/terraform/monitoring.tf
 
   - id: gdpr-13-transparency-001
     control-id: gdpr-13
@@ -199,26 +209,30 @@ attestations:
 
   - id: gdpr-30-ropa-001
     control-id: gdpr-30
-    status: satisfied
+    status: partial
     decision: >
-      ROPA entry ROPA-001 exists at compliance/procedures/ropa-entry.yaml.
-      All Art. 30(1) mandatory fields are populated; fields requiring legal
-      entity identity are marked [TBD] pending production deployment.
+      ROPA entry ROPA-001 exists but the controller identity field is a TBD
+      placeholder. Art. 30(1)(a) requires the controller name and contact
+      details; these are outstanding prerequisites for production. Controller
+      identity and DPO fields must be completed before any real-data deployment.
     justification: >
       ROPA-001 (compliance/procedures/ropa-entry.yaml) was created 2026-04-13
-      and covers all Art. 30(1) mandatory fields: controller identification
-      (marked [TBD] for legal entity details — acceptable for demo phase),
-      purposes of processing, categories of data subjects, categories of
-      personal data (conversation transcripts, session metadata, infrastructure
-      logs), recipients (AWS as processor, sub-processors identified), transfers
-      outside EU (us-east-1 covered by AWS SCCs + EU-US DPF), retention periods
-      (30 days for conversation logs and session metadata), and security measures
-      (KMS, TLS, IAM, GuardDuty). A DPIA requirement assessment is included
-      (deferred — no real personal data in prototype). The record is version-
-      controlled and has a defined review cadence. Status: satisfied for the
-      prototype phase. Legal entity fields must be completed before production.
+      and covers most Art. 30(1) mandatory fields: purposes of processing,
+      categories of data subjects, categories of personal data (conversation
+      transcripts, session metadata, infrastructure logs), recipients (AWS as
+      processor, sub-processors identified), transfers outside EU (us-east-1
+      covered by AWS SCCs + EU-US DPF), retention periods (30 days for
+      conversation logs and session metadata), and security measures (KMS, TLS,
+      IAM, GuardDuty). However, the controller name field is marked [Legal
+      entity name — to be filled before production deployment] and the DPO
+      field is [TBD]. Art. 30(1)(a) explicitly requires the controller's name
+      and contact details; a record with a placeholder controller identity does
+      not fully satisfy this article. Status: partial — structure is correct
+      and most fields populated; controller identity and DPO are blocking gaps
+      for production compliance. Acceptable for prototype phase with no real
+      personal data.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-25T08:00:00Z"
+    reviewed-at: "2026-04-28T00:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - compliance/procedures/ropa-entry.yaml
@@ -228,28 +242,33 @@ attestations:
     status: satisfied
     decision: >
       Both technical and organisational security measures are now in place.
-      Technical: KMS, TLS, IAM least-privilege, GuardDuty, CloudTrail all active.
+      Technical: KMS (including Lambda log group), TLS, IAM least-privilege,
+      GuardDuty MEDIUM+ -> SNS alerting (monitoring.tf), CloudTrail all active.
       Organisational: incident response procedure IRP-001 documented.
     justification: >
-      Technical measures deployed as of 2026-04-23: customer-managed KMS key
-      (alias/cob-main-dev) encrypts S3 and DynamoDB at rest; Lambda Function URL
-      enforces TLS; IAM roles for Lambda and Bedrock KB are scoped to
-      least-privilege; GuardDuty active with MEDIUM+ findings routed to SNS
-      zoo-security-alerts; CloudTrail with 90-day retention; IAM password policy
-      (16+ chars). Organisational measures: written incident response procedure
-      IRP-001 (compliance/procedures/incident-response.md) covers detection,
-      72-hour notification timeline, containment steps, and post-incident review.
-      Remaining gap: no formal access review schedule is documented, but given
-      a single-operator prototype this is proportionate to the risk level.
+      Technical measures deployed as of 2026-04-28: customer-managed KMS key
+      (alias/cob-main-dev) encrypts S3, DynamoDB, and Lambda CloudWatch logs
+      at rest (aws_cloudwatch_log_group with kms_key_id in lambda.tf); Lambda
+      Function URL enforces TLS; IAM roles for Lambda and Bedrock KB are
+      scoped to least-privilege; GuardDuty active with MEDIUM+ findings routed
+      to SNS via EventBridge (aws_cloudwatch_event_rule + aws_sns_topic in
+      infra/terraform/monitoring.tf); CloudTrail with 90-day retention; IAM
+      password policy (16+ chars). Organisational measures: written incident
+      response procedure IRP-001 (compliance/procedures/incident-response.md)
+      covers detection, 72-hour notification timeline, containment steps, and
+      post-incident review. Remaining gap: no formal access review schedule
+      documented, but given a single-operator prototype this is proportionate.
       Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-25T08:00:00Z"
+    reviewed-at: "2026-04-28T00:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - evidence/automated/guardduty-status.json
       - evidence/automated/cloudtrail-status.json
       - evidence/automated/iam-password-policy.json
       - compliance/procedures/incident-response.md
+      - infra/terraform/lambda.tf
+      - infra/terraform/monitoring.tf
 
   - id: gdpr-33-incident-response-001
     control-id: gdpr-33
@@ -257,30 +276,36 @@ attestations:
     decision: >
       Automated detection, written incident response procedure (IRP-001),
       and a structured DPA notification template are all in place.
-      Remaining pre-production gap: formal DPO role and legal entity identity
-      not yet established. Acceptable for prototype phase.
+      EventBridge -> SNS alert routing for GuardDuty MEDIUM+ is defined in
+      infra/terraform/monitoring.tf. Remaining pre-production gap: formal DPO
+      role and legal entity identity not yet established. Acceptable for
+      prototype phase.
     justification: >
-      Automated detection operational: GuardDuty MEDIUM+ findings trigger
-      EventBridge → SNS zoo-security-alerts (email confirmed active).
-      Written incident response procedure IRP-001
+      Automated detection: GuardDuty MEDIUM+ findings (severity >= 4) trigger
+      an EventBridge rule (aws_cloudwatch_event_rule.guardduty_medium_plus) that
+      routes to SNS topic aws_sns_topic.security_alerts via
+      aws_cloudwatch_event_target (infra/terraform/monitoring.tf). SNS email
+      subscription is provisioned; activation requires confirmation by the
+      alert_email owner. Written incident response procedure IRP-001
       (compliance/procedures/incident-response.md) covers: personal data scope
       assessment, severity classification, containment steps with CLI references,
       72-hour notification timeline, DPA notification content requirements
       (Art. 33(3)), incident register obligations, and post-incident review.
-      DPA breach notification template created at
-      compliance/procedures/dpa-notification-template.yaml covering all
-      Art. 33(3) mandatory fields with FILL/ASSESS annotations for incident
-      completion. Remaining pre-production gaps: (1) formal DPO contact must
-      be established before production; (2) legal entity identity for controller
-      fields must be filled. These are acceptable gaps for the current prototype
-      phase which processes no real personal data. Status: satisfied.
+      Incident register stub exists at compliance/evidence/incident-register.yaml.
+      DPA breach notification template at compliance/procedures/
+      dpa-notification-template.yaml covers all Art. 33(3) mandatory fields.
+      Remaining pre-production gaps: (1) formal DPO contact must be established;
+      (2) legal entity identity for controller fields must be filled; (3) SNS
+      email subscription requires manual confirmation. Status: satisfied.
     reviewed-by: Priya (principal engineer, zoo)
-    reviewed-at: "2026-04-25T08:00:00Z"
+    reviewed-at: "2026-04-28T00:00:00Z"
     built-by: Priya (principal engineer, zoo)
     evidence-refs:
       - evidence/automated/guardduty-status.json
       - compliance/procedures/incident-response.md
       - compliance/procedures/dpa-notification-template.yaml
+      - infra/terraform/monitoring.tf
+      - compliance/evidence/incident-register.yaml
 
   - id: gdpr-35-dpia-001
     control-id: gdpr-35
