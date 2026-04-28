@@ -88,7 +88,11 @@ def list_gdpr_controls() -> str:
     Returns:
         A formatted list of control IDs and titles, or an error message.
     """
-    # We retrieve a broad query to get the catalog structure.
+    # Calling retrieve_compliance_info() directly from Python is intentional and safe.
+    # The Strands @tool decorator preserves normal function call semantics for direct
+    # Python-to-Python calls; it only activates tool machinery (validation, formatting)
+    # when the function is invoked through the agent's tool use system.
+    # Reference: strands-agents sdk-python/src/strands/tools/decorator.py __call__
     return retrieve_compliance_info(
         "List all GDPR control identifiers, article numbers, and titles"
     )
@@ -104,6 +108,7 @@ def list_eu_ai_act_controls() -> str:
     Returns:
         A formatted list of EU AI Act control IDs and titles, or an error message.
     """
+    # See list_gdpr_controls() for a note on direct @tool-to-@tool calls.
     return retrieve_compliance_info(
         "List all EU AI Act control identifiers, article numbers, and titles"
     )
