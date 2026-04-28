@@ -1,8 +1,11 @@
 """
 AWS Lambda handler for the compliance-ops-bedrock chatbot endpoint.
 
-Accepts POST requests with body: {"message": "<user input>", "session_id": "<uuid>"}
-Returns: {"response": "<agent reply>", "session_id": "<uuid>"}
+Routes:
+  POST /         — chatbot: {"message": "<user input>", "session_id": "<uuid>"}
+                   Returns: {"response": "<agent reply>", "session_id": "<uuid>"}
+  POST /report   — generate compliance report and upload to the report S3 bucket.
+                   Returns: {"url": "<s3-website-url>", "bytes": <n>}
 
 Session persistence: conversation history is managed in-process by the Strands
 agent (it maintains a message list per agent instance). For multi-Lambda-instance
@@ -24,6 +27,7 @@ import os
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 import boto3
@@ -35,6 +39,15 @@ logger.setLevel(logging.INFO)
 # cold start; subsequent invocations reuse the already-initialised agent.
 from app.agent import agent
 
+# Import report generation functions (no subprocess — runs in-process).
+from scripts.generate_report import (
+    assemble_report,
+    load_attestations,
+    load_catalogs,
+    load_evidence,
+    REPORT_TEMPLATE,
+)
+
 _CORS_ORIGIN = os.environ.get("CORS_ORIGIN", "*")
 
 # ── Conversation logging configuration ────────────────────────────────────────
@@ -42,6 +55,7 @@ _CORS_ORIGIN = os.environ.get("CORS_ORIGIN", "*")
 _DYNAMODB_TABLE = os.environ.get("DYNAMODB_TABLE", "")
 _CONV_LOG_BUCKET = os.environ.get("CONV_LOG_BUCKET", "")
 _RETENTION_DAYS = int(os.environ.get("RETENTION_DAYS", "30"))
+_REPORT_BUCKET = os.environ.get("REPORT_BUCKET", "")
 
 # Lazy boto3 clients — initialised once per cold start.
 _dynamodb_client: Any = None
@@ -141,16 +155,73 @@ def _err(status: int, message: str) -> dict[str, Any]:
     }
 
 
+def _handle_report() -> dict[str, Any]:
+    """Generate the HTML compliance report in-process and upload it to the report S3 bucket.
+
+    The report S3 bucket is a static website (see infra/terraform/s3.tf).
+    This function is called when a POST request is made to /report.
+
+    Returns a 200 response with {"url": "<s3-website-url>", "bytes": <n>} on success,
+    or a 5xx response on failure.
+    """
+    if not _REPORT_BUCKET:
+        logger.warning("REPORT_BUCKET not set; cannot publish report")
+        return _err(500, "REPORT_BUCKET environment variable is not configured.")
+
+    # Resolve paths relative to the Lambda working directory.
+    # In the container image the repo root is at /var/task.
+    repo_root = Path(__file__).parent.parent
+    catalog_dir = repo_root / "compliance" / "catalogs"
+    attestation_dir = repo_root / "attestations"
+    evidence_dir = repo_root / "evidence" / "automated"
+
+    if not catalog_dir.exists():
+        logger.error("Catalog directory not found at %s", catalog_dir)
+        return _err(500, f"Catalog directory not found: {catalog_dir}")
+
+    try:
+        from jinja2 import Environment as JinjaEnv
+        catalogs_raw = load_catalogs(catalog_dir)
+        attestations = load_attestations(attestation_dir) if attestation_dir.exists() else {}
+        evidence = load_evidence(evidence_dir) if evidence_dir.exists() else []
+        report_data = assemble_report(catalogs_raw, attestations, evidence)
+
+        env = JinjaEnv(autoescape=True)
+        env.filters["replace"] = lambda s, old, new: str(s).replace(old, new)
+        template = env.from_string(REPORT_TEMPLATE)
+        html = template.render(**report_data)
+    except Exception as exc:
+        logger.exception("Report generation failed: %s", exc)
+        return _err(500, f"Report generation failed: {exc}")
+
+    html_bytes = html.encode("utf-8")
+    region = os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    report_url = f"http://{_REPORT_BUCKET}.s3-website-{region}.amazonaws.com"
+
+    try:
+        _get_s3().put_object(
+            Bucket=_REPORT_BUCKET,
+            Key="index.html",
+            Body=html_bytes,
+            ContentType="text/html; charset=utf-8",
+        )
+    except Exception as exc:
+        logger.exception("Failed to upload report to S3 bucket %s: %s", _REPORT_BUCKET, exc)
+        return _err(500, f"Failed to upload report to S3: {exc}")
+
+    logger.info("Report uploaded to s3://%s/index.html (%d bytes)", _REPORT_BUCKET, len(html_bytes))
+    return _ok({"url": report_url, "bytes": len(html_bytes)})
+
+
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     """Lambda entry point.
 
-    Expected event shape (Lambda Function URL or API Gateway proxy):
-        {
-          "body": "{\"message\": \"...\", \"session_id\": \"...\"}",
-          "httpMethod": "POST"   // or requestContext.http.method for Function URL
-        }
-
-    The session_id is optional; a new UUID is generated if omitted.
+    Expected event shapes:
+      POST /        — chatbot request:
+                      body: {"message": "...", "session_id": "..."}
+                      Returns: {"response": "...", "session_id": "..."}
+      POST /report  — generate and publish compliance report.
+                      Returns: {"url": "<s3-website-url>", "bytes": <n>}
     """
     # Handle CORS pre-flight
     method = (
@@ -163,6 +234,17 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     if method not in ("POST", ""):
         return _err(405, "Method not allowed. Use POST.")
 
+    # Route dispatch — POST /report generates and publishes the compliance report.
+    raw_path = (
+        event.get("path")
+        or event.get("rawPath")
+        or event.get("requestContext", {}).get("http", {}).get("path", "/")
+        or "/"
+    )
+    if raw_path.rstrip("/") == "/report":
+        return _handle_report()
+
+    # Default route: chatbot
     # Parse request body
     raw_body = event.get("body") or "{}"
     try:

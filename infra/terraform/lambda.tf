@@ -243,6 +243,10 @@ resource "aws_codebuild_project" "app_deploy" {
       name  = "RETENTION_DAYS"
       value = tostring(var.s3_log_expiration_days)
     }
+    environment_variable {
+      name  = "REPORT_BUCKET"
+      value = local.report_bucket_name
+    }
   }
 
   source {
@@ -286,7 +290,7 @@ resource "aws_codebuild_project" "app_deploy" {
                   --description "Compliance chatbot Lambda (Strands + Bedrock Nova Micro)" \
                   --timeout 60 \
                   --memory-size 512 \
-                  --environment "Variables={KNOWLEDGE_BASE_ID=$KNOWLEDGE_BASE_ID,AGENT_MODEL_ID=$AGENT_MODEL_ID,CORS_ORIGIN=*,LOG_LEVEL=INFO,DYNAMODB_TABLE=$DYNAMODB_TABLE,CONV_LOG_BUCKET=$CONV_LOG_BUCKET,RETENTION_DAYS=$RETENTION_DAYS}" \
+                  --environment "Variables={KNOWLEDGE_BASE_ID=$KNOWLEDGE_BASE_ID,AGENT_MODEL_ID=$AGENT_MODEL_ID,CORS_ORIGIN=*,LOG_LEVEL=INFO,DYNAMODB_TABLE=$DYNAMODB_TABLE,CONV_LOG_BUCKET=$CONV_LOG_BUCKET,RETENTION_DAYS=$RETENTION_DAYS,REPORT_BUCKET=$REPORT_BUCKET}" \
                   --region $AWS_DEFAULT_REGION \
                   --no-cli-pager
                 echo "Waiting for function to become active"

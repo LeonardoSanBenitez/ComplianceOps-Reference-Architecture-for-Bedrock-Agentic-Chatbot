@@ -204,7 +204,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   policy_arn = data.aws_iam_policy.lambda_basic_execution.arn
 }
 
-# Permission: write conversation logs to S3.
+# Permission: write conversation logs to S3 and publish compliance report.
 resource "aws_iam_role_policy" "lambda_conv_logs_s3" {
   name = "write-conversation-logs"
   role = aws_iam_role.lambda_execution.id
@@ -220,6 +220,18 @@ resource "aws_iam_role_policy" "lambda_conv_logs_s3" {
           "s3:GetObject"
         ]
         Resource = ["${aws_s3_bucket.conv_logs.arn}/*"]
+        Condition = {
+          StringEquals = {
+            "aws:ResourceAccount" = var.aws_account_id
+          }
+        }
+      },
+      {
+        # POST /report: Lambda generates the compliance report and uploads it here.
+        Sid    = "PutComplianceReport"
+        Effect = "Allow"
+        Action = ["s3:PutObject"]
+        Resource = ["${aws_s3_bucket.report.arn}/*"]
         Condition = {
           StringEquals = {
             "aws:ResourceAccount" = var.aws_account_id
