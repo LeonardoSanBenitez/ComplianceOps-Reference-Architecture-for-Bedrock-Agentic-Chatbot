@@ -32,7 +32,11 @@
 locals {
   tf_version      = "1.8.5"
   tf_working_dir  = "infra/terraform"
-  tf_vars         = "-var=\"aws_account_id=${var.aws_account_id}\" -var=\"environment=${var.environment}\""
+  # tf_vars uses a var-file per environment so per-env defaults are maintained.
+  # TF_ENV CodeBuild env var selects which environments/<env>.tfvars to load.
+  # The aws_account_id is still supplied as a direct -var (it is account-scoped
+  # and not appropriate to commit to any tfvars file).
+  tf_vars         = "-var-file=environments/$${TF_ENV}.tfvars -var=\"aws_account_id=${var.aws_account_id}\""
   # GitHub repository URL for CodeBuild source.
   # CodeBuild fetches via the GitHub connection (OAuth or GitHub App).
   github_repo_url = "https://github.com/LeonardoSanBenitez/ComplianceOps-Reference-Architecture-for-Bedrock-Agentic-Chatbot"
@@ -509,6 +513,11 @@ resource "aws_codebuild_project" "tf_plan" {
       name  = "ENVIRONMENT"
       value = var.environment
     }
+    environment_variable {
+      # TF_ENV selects which environments/<env>.tfvars file to load.
+      name  = "TF_ENV"
+      value = var.environment
+    }
   }
 
   source {
@@ -539,8 +548,8 @@ resource "aws_codebuild_project" "tf_plan" {
           commands:
             - |
               terraform plan \
+                -var-file="environments/$TF_ENV.tfvars" \
                 -var="aws_account_id=$AWS_ACCOUNT_ID" \
-                -var="environment=$ENVIRONMENT" \
                 -input=false \
                 -no-color \
                 -out=tfplan 2>&1 | tee /tmp/plan_output.txt
@@ -645,6 +654,11 @@ resource "aws_codebuild_project" "tf_apply" {
       name  = "ENVIRONMENT"
       value = var.environment
     }
+    environment_variable {
+      # TF_ENV selects which environments/<env>.tfvars file to load.
+      name  = "TF_ENV"
+      value = var.environment
+    }
   }
 
   source {
@@ -670,8 +684,8 @@ resource "aws_codebuild_project" "tf_apply" {
           commands:
             - |
               terraform plan \
+                -var-file="environments/$TF_ENV.tfvars" \
                 -var="aws_account_id=$AWS_ACCOUNT_ID" \
-                -var="environment=$ENVIRONMENT" \
                 -input=false \
                 -no-color \
                 -out=tfplan
@@ -700,6 +714,155 @@ resource "aws_codebuild_project" "tf_apply" {
   }
 }
 
+# ── CodeBuild: CI validation (replaces GitHub Actions) ─────────────────────────
+#
+# Runs on every push to main (webhook) and can be triggered manually.
+# Checks: mypy, OSCAL catalog YAML validation, trestle validate, attestation
+# YAML validation, report generation dry-run, pytest.
+#
+# This project uses the same IAM role as the Terraform projects.
+# The IAM role needs no extra permissions — CI only reads the source and runs
+# Python tools; it does not provision AWS resources.
+#
+# Triggered by: PUSH to main branch (webhook filter below).
+# Also triggers on any push to a feature branch (any ref) — the filter below
+# is intentionally broad so that all branches get CI feedback.
+#
+# GitHub webhook: CodeBuild registers the webhook automatically when the
+# source credentials (GitHub PAT) are present in CodeBuild.
+
+resource "aws_codebuild_project" "ci" {
+  name          = "${var.project_name}-ci"
+  description   = "CI validation: mypy, OSCAL YAML, trestle, attestations, report dry-run, pytest"
+  service_role  = aws_iam_role.codebuild_tf.arn
+  build_timeout = 15  # minutes
+
+  artifacts {
+    type = "NO_ARTIFACTS"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/standard:7.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+  }
+
+  source {
+    type                = "GITHUB"
+    location            = local.github_repo_url
+    git_clone_depth     = 1
+    report_build_status = true
+
+    buildspec = <<-BUILDSPEC
+      version: 0.2
+      phases:
+        install:
+          commands:
+            - pip install --quiet
+                mypy
+                pyyaml
+                jinja2
+                pydantic
+                types-PyYAML
+                boto3
+                boto3-stubs[essential]
+                types-boto3
+                strands-agents==1.37.0
+                compliance-trestle==3.6.0
+                pytest
+        build:
+          commands:
+            - echo "=== mypy ==="
+            - mypy --config-file pyproject.toml scripts/ app/
+            - echo "=== OSCAL catalog YAML structure ==="
+            - |
+              python - <<'EOF'
+              import yaml
+              from pathlib import Path
+              errors = []
+              for fpath in Path("compliance/catalogs").glob("*.yaml"):
+                  with open(fpath) as f:
+                      doc = yaml.safe_load(f)
+                  catalog = doc.get("catalog")
+                  if not catalog:
+                      errors.append(f"{fpath}: missing top-level 'catalog' key")
+                  elif not catalog.get("groups"):
+                      errors.append(f"{fpath}: catalog has no groups")
+              if errors:
+                  for e in errors: print(f"ERROR: {e}")
+                  raise SystemExit(1)
+              print(f"OK: {len(list(Path('compliance/catalogs').glob('*.yaml')))} catalog(s) valid")
+              EOF
+            - echo "=== trestle validate ==="
+            - |
+              set -euo pipefail
+              REPO_ROOT="$(pwd)"
+              TRESTLE_WS="$(mktemp -d)"
+              cd "$TRESTLE_WS"
+              trestle init
+              for f in "$REPO_ROOT"/compliance/catalogs/*.yaml; do
+                name="$(basename "$f" .yaml)"
+                trestle import -f "$f" -o "$name"
+              done
+              trestle validate -a
+              echo "OK: trestle validate passed for all catalogs"
+            - echo "=== Attestation YAML ==="
+            - |
+              python - <<'EOF'
+              import yaml
+              from pathlib import Path
+              errors = []
+              for fpath in Path("attestations").glob("*.yaml"):
+                  if fpath.name == "schema.yaml":
+                      continue
+                  with open(fpath) as f:
+                      doc = yaml.safe_load(f)
+                  for att in doc.get("attestations", []):
+                      required = ["id", "control-id", "status", "decision", "justification", "reviewed-by", "reviewed-at"]
+                      for field in required:
+                          if field not in att:
+                              errors.append(f"{fpath}:{att.get('id','?')}: missing field '{field}'")
+              if errors:
+                  for e in errors: print(f"ERROR: {e}")
+                  raise SystemExit(1)
+              print("OK: attestation YAML valid")
+              EOF
+            - echo "=== Report generation dry-run ==="
+            - python scripts/generate_report.py --output /tmp/report.html
+            - test -f /tmp/report.html && echo "OK: report generated ($(wc -c < /tmp/report.html) bytes)"
+            - grep -q "compliance-ops-bedrock" /tmp/report.html && echo "OK: content check passed"
+            - echo "=== pytest ==="
+            - pytest tests/ -v
+    BUILDSPEC
+  }
+
+  logs_config {
+    cloudwatch_logs {
+      group_name  = "/aws/codebuild/${var.project_name}-ci"
+      stream_name = ""
+      status      = "ENABLED"
+    }
+  }
+
+  tags = {
+    Name = "${var.project_name}-ci"
+  }
+}
+
+# Webhook: trigger CI on all pushes (any branch).
+resource "aws_codebuild_webhook" "ci_push" {
+  project_name = aws_codebuild_project.ci.name
+  build_type   = "BUILD"
+
+  filter_group {
+    filter {
+      type    = "EVENT"
+      pattern = "PUSH"
+    }
+  }
+}
+
 # ── Outputs ────────────────────────────────────────────────────────────────────
 
 output "codebuild_tf_plan_project_name" {
@@ -715,4 +878,9 @@ output "codebuild_tf_apply_project_name" {
 output "codebuild_tf_role_arn" {
   description = "IAM role ARN used by the CodeBuild terraform projects"
   value       = aws_iam_role.codebuild_tf.arn
+}
+
+output "codebuild_ci_project_name" {
+  description = "CodeBuild project name for CI validation (replaces GitHub Actions)"
+  value       = aws_codebuild_project.ci.name
 }
