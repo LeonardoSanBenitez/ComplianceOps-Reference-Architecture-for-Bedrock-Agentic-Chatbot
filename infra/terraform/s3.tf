@@ -1,21 +1,22 @@
 # ── S3 buckets ─────────────────────────────────────────────────────────────────
 #
-# Two buckets:
+# Three buckets:
 #   1. knowledge-base-source  — stores the documents indexed by Bedrock KB
 #   2. conversation-logs      — stores conversation transcripts (GDPR scope)
+#   3. report                 — public static website hosting for compliance report
 #
-# Both buckets are private with SSE-KMS, versioning, and access logging.
-# The KMS key is a customer-managed key (CMK) shared across both buckets.
-# Separate CMKs per bucket would be stronger isolation but adds operational cost;
-# acceptable for a demo, must be reassessed before handling production personal data.
+# Buckets 1 and 2 are private with SSE-KMS, versioning, and access logging.
+# Bucket 3 is intentionally public (static website); default SSE-S3 (no CMK needed
+# on a public bucket). All three use the newer BucketOwnerEnforced ownership model.
 #
-# Note on ACLs: both buckets use the newer S3 ownership controls model
+# Note on ACLs: all buckets use the newer S3 ownership controls model
 # (BucketOwnerEnforced) and disable ACLs. All access is via bucket policies
 # and IAM. This is the recommended posture for new buckets.
 
 locals {
   kb_source_bucket_name   = "${var.project_name}-kb-source-${var.environment}"
   conv_log_bucket_name    = "${var.project_name}-conv-logs-${var.environment}"
+  report_bucket_name      = "${var.project_name}-report-${var.environment}"
 }
 
 # ── KMS key ────────────────────────────────────────────────────────────────────
@@ -192,4 +193,82 @@ resource "aws_s3_bucket_lifecycle_configuration" "conv_logs" {
       days_after_initiation = 1
     }
   }
+}
+
+# ── Report bucket (public static website) ─────────────────────────────────────
+#
+# Hosts the generated HTML compliance report.
+# This bucket is intentionally public — it contains no personal data or secrets.
+# SSE-S3 (default AES-256) is used; the project CMK is not needed on public content.
+
+resource "aws_s3_bucket" "report" {
+  bucket = local.report_bucket_name
+
+  force_destroy = var.environment == "dev" ? true : false
+}
+
+resource "aws_s3_bucket_ownership_controls" "report" {
+  bucket = aws_s3_bucket.report.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+# All four public access block fields set to false — this bucket is intentionally public.
+resource "aws_s3_bucket_public_access_block" "report" {
+  bucket                  = aws_s3_bucket.report.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "report" {
+  bucket = aws_s3_bucket.report.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"  # default SSE-S3; no CMK needed on a public bucket
+    }
+  }
+}
+
+resource "aws_s3_bucket_website_configuration" "report" {
+  bucket = aws_s3_bucket.report.id
+
+  index_document {
+    suffix = "index.html"
+  }
+}
+
+# Bucket policy: allow public read of all objects.
+resource "aws_s3_bucket_policy" "report_public_read" {
+  bucket = aws_s3_bucket.report.id
+
+  # Depends on the public access block being applied first.
+  depends_on = [aws_s3_bucket_public_access_block.report]
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.report.arn}/*"
+      }
+    ]
+  })
+}
+
+# ── Outputs ────────────────────────────────────────────────────────────────────
+
+output "report_bucket_name" {
+  description = "Name of the S3 bucket hosting the public compliance report"
+  value       = aws_s3_bucket.report.id
+}
+
+output "report_bucket_url" {
+  description = "S3 static website URL for the compliance report"
+  value       = "http://${aws_s3_bucket.report.bucket}.s3-website-${var.aws_region}.amazonaws.com"
 }

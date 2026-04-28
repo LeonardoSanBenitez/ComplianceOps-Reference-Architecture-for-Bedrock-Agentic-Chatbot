@@ -81,8 +81,8 @@ Controls are defined in OSCAL YAML. Two catalogs are included:
 
 | Catalog | File | Controls |
 |---------|------|----------|
-| GDPR | `compliance/catalogs/gdpr.yaml` | 12 controls across Arts. 5, 13, 17, 25, 32, 33 |
-| EU AI Act | `compliance/catalogs/eu-ai-act.yaml` | 8 controls (limited-risk chatbot classification) |
+| GDPR | `compliance/catalogs/gdpr-minimal.yaml` | 12 controls across Arts. 5, 13, 17, 25, 32, 33 |
+| EU AI Act | `compliance/catalogs/eu-ai-act-minimal.yaml` | 8 controls (limited-risk chatbot classification) |
 
 **Important:** No official OSCAL catalogs for GDPR or the EU AI Act have been published by a standards body. Both catalogs in this repository were created for this project, based on the authors' own reading and mapping of the regulations. The control coverage and mapping choices reflect editorial judgments, not a standardised or authoritative interpretation. One of the contributions of this project is to provide a starting point for community-developed OSCAL catalogs for these regulations.
 
@@ -101,6 +101,7 @@ All infrastructure is managed by Terraform (`infra/terraform/`).
 | Bedrock Knowledge Base | RAG index (S3 Vectors backend) |
 | S3 — KB source | Compliance documents for KB ingestion |
 | S3 — Conversation logs | Conversation log storage (30-day retention) |
+| S3 — Report | Public static website hosting for the generated compliance report |
 | DynamoDB | Session metadata (30-day TTL) |
 | KMS | Encryption at rest for all persistent data |
 | CodeBuild — `cob-tf-plan` | Terraform plan, triggered on PR open/update |
@@ -148,12 +149,14 @@ Upload compliance documents to the KB source S3 bucket and trigger ingestion:
 
 ```bash
 aws s3 cp README.md s3://cob-kb-source-dev/README.md
-aws s3 cp compliance/catalogs/ s3://cob-kb-source-dev/catalogs/ --recursive
+aws s3 cp compliance/catalogs/gdpr-minimal.yaml s3://cob-kb-source-dev/catalogs/gdpr-minimal.yaml
+aws s3 cp compliance/catalogs/eu-ai-act-minimal.yaml s3://cob-kb-source-dev/catalogs/eu-ai-act-minimal.yaml
 aws s3 cp attestations/ s3://cob-kb-source-dev/attestations/ --recursive
 aws s3 cp compliance/procedures/ s3://cob-kb-source-dev/procedures/ --recursive
 
 KB_ID=$(terraform output -raw bedrock_kb_id)
-DS_ID=$(terraform output -raw bedrock_kb_data_source_id)
+# DS_ID is not a Terraform output — retrieve it from the Bedrock console or CLI:
+DS_ID=$(aws bedrock-agent list-data-sources --knowledge-base-id $KB_ID --query 'dataSourceSummaries[0].dataSourceId' --output text)
 aws bedrock-agent start-ingestion-job --knowledge-base-id $KB_ID --data-source-id $DS_ID
 ```
 
@@ -177,6 +180,28 @@ aws lambda get-function-url-config --function-name cob-chat-dev
 curl -X POST <FUNCTION_URL> \
   -H "Content-Type: application/json" \
   -d '{"message": "What GDPR controls are implemented for this system?"}'
+```
+
+### Publish the compliance report
+
+Generate the compliance report locally and publish it to the public S3 report bucket:
+
+```bash
+# Requires: Python 3.11+, pyyaml, jinja2, aws CLI, AWS credentials
+./scripts/publish_report.sh
+
+# Or pass the bucket name explicitly:
+./scripts/publish_report.sh cob-report-dev
+```
+
+The script generates `report/index.html` and uploads it to the report bucket as `index.html`.
+The published URL is printed at the end. It follows the pattern:
+`http://<bucket-name>.s3-website-<region>.amazonaws.com`
+
+Alternatively, generate the report locally only:
+
+```bash
+python scripts/generate_report.py --output report/index.html
 ```
 
 ## EU AI Act Art. 50 Transparency Disclosure
@@ -226,7 +251,7 @@ compliance-ops-bedrock/
 │   └── automated/          # Evidence artifacts from collect_evidence.py
 ├── infra/
 │   └── terraform/          # All infrastructure definitions (buildspecs are inline in codebuild.tf)
-├── report/                 # Jinja2 templates for compliance report
+├── report/                 # Output directory for generated compliance report (index.html created at runtime)
 ├── scripts/                # Evidence collection and report generation scripts
 ├── COST.md                 # Cost estimate
 └── pyproject.toml          # Python project metadata and mypy/tool config
