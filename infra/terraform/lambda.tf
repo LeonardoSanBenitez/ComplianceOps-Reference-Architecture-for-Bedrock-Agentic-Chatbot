@@ -170,6 +170,8 @@ resource "aws_iam_role_policy" "codebuild_tf_ecr" {
           "ecr:PutLifecyclePolicy",
           "ecr:SetRepositoryPolicy",
           "ecr:TagResource",
+          "ecr:UntagResource",
+          "ecr:ListTagsForResource",
           "ecr:UploadLayerPart"
         ]
         Resource = [

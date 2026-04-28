@@ -226,6 +226,21 @@ resource "aws_iam_role_policy" "codebuild_tf_s3" {
         ]
       },
       {
+        Sid    = "S3BucketConfigRead"
+        Effect = "Allow"
+        Action = [
+          # Terraform provider reads accelerate configuration during refresh.
+          "s3:GetAccelerateConfiguration",
+          "s3:GetBucketCORS",
+          "s3:GetBucketWebsite"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.project_name}-*",
+          # Terraform state bucket — not prefixed with project_name
+          "arn:aws:s3:::compliance-ops-bedrock-tfstate"
+        ]
+      },
+      {
         Sid    = "S3ObjectLevelActions"
         Effect = "Allow"
         Action = [
@@ -456,7 +471,9 @@ resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
   })
 }
 
-# CodeBuild: allow the role to report build status back (minimal self-referential perms).
+# CodeBuild: allow the role to report build status back and read its own project config.
+# BatchGetProjects is required by the Terraform aws_codebuild_project data source reads
+# that occur during terraform plan/apply when the provider refreshes existing resources.
 resource "aws_iam_role_policy" "codebuild_tf_self" {
   name = "codebuild-self"
   role = aws_iam_role.codebuild_tf.id
@@ -465,11 +482,17 @@ resource "aws_iam_role_policy" "codebuild_tf_self" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "CodeBuildReportStatus"
+        Sid    = "CodeBuildReadAndStatus"
         Effect = "Allow"
         Action = [
           "codebuild:BatchGetBuilds",
-          "codebuild:ListBuildsForProject"
+          "codebuild:BatchGetProjects",
+          "codebuild:CreateWebhook",
+          "codebuild:DeleteWebhook",
+          "codebuild:GetResourcePolicy",
+          "codebuild:ListBuildsForProject",
+          "codebuild:ListProjects",
+          "codebuild:UpdateWebhook"
         ]
         Resource = [
           "arn:aws:codebuild:${var.aws_region}:${var.aws_account_id}:project/${var.project_name}-*"
