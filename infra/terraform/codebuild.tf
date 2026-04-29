@@ -483,7 +483,9 @@ resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
       },
       {
         # Manage AgentCore Runtimes and Endpoints via the bedrock-agentcore service API.
-        # The awscc Terraform provider calls these actions through Cloud Control API.
+        # CreateAgentRuntime internally calls CreateWorkloadIdentity to create a workload
+        # identity for the runtime.  That action targets:
+        #   arn:aws:bedrock-agentcore:<region>:<account>:workload-identity-directory/default/workload-identity/*
         # PassRole for the agentcore execution role is handled in the IAMPassRoleToServices
         # statement in the iam-project-roles policy.
         Sid    = "AgentCoreRuntimeManage"
@@ -501,7 +503,11 @@ resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
           "bedrock-agentcore:UpdateAgentRuntimeEndpoint",
           "bedrock-agentcore:TagResource",
           "bedrock-agentcore:UntagResource",
-          "bedrock-agentcore:ListTagsForResource"
+          "bedrock-agentcore:ListTagsForResource",
+          "bedrock-agentcore:CreateWorkloadIdentity",
+          "bedrock-agentcore:DeleteWorkloadIdentity",
+          "bedrock-agentcore:GetWorkloadIdentity",
+          "bedrock-agentcore:ListWorkloadIdentities"
         ]
         Resource = "*"
       }
