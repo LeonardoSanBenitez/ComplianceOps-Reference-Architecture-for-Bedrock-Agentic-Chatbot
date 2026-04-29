@@ -378,6 +378,22 @@ resource "aws_iam_role_policy" "codebuild_tf_iam" {
         Resource = [
           "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
         ]
+      },
+      {
+        # CreateAgentRuntime triggers an internal CreateServiceLinkedRole call for
+        # AWSServiceRoleForAmazonBedrockAgentCore.  Without this the apply fails with:
+        # "AccessDeniedException: Failed creating service linked role."
+        Sid    = "IAMCreateServiceLinkedRole"
+        Effect = "Allow"
+        Action = ["iam:CreateServiceLinkedRole"]
+        Resource = [
+          "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/bedrock-agentcore.amazonaws.com/*"
+        ]
+        Condition = {
+          StringEquals = {
+            "iam:AWSServiceName" = "bedrock-agentcore.amazonaws.com"
+          }
+        }
       }
     ]
   })
