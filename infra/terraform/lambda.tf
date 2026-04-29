@@ -199,9 +199,12 @@ resource "aws_codebuild_project" "app_deploy" {
   }
 
   environment {
+    # ARM_CONTAINER + amazonlinux-aarch64 builds a native arm64 image required by
+    # Bedrock AgentCore Runtime (arm64-only; x86_64 images are rejected at deploy time).
+    # Lambda arm64 (Graviton2) is also ~20% cheaper and faster than x86_64.
     compute_type                = "BUILD_GENERAL1_SMALL"
-    image                       = "aws/codebuild/standard:7.0"
-    type                        = "LINUX_CONTAINER"
+    image                       = "aws/codebuild/amazonlinux-aarch64-standard:3.0"
+    type                        = "ARM_CONTAINER"
     image_pull_credentials_type = "CODEBUILD"
     privileged_mode             = true  # required for Docker builds
 
@@ -274,8 +277,8 @@ resource "aws_codebuild_project" "app_deploy" {
             - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)
         build:
           commands:
-            - echo "Building Docker image"
-            - docker build -t $ECR_REPO:$IMAGE_TAG -t $ECR_REPO:latest -f app/Dockerfile .
+            - echo "Building Docker image (arm64 for AgentCore Runtime and Lambda Graviton2)"
+            - docker build --platform linux/arm64 -t $ECR_REPO:$IMAGE_TAG -t $ECR_REPO:latest -f app/Dockerfile .
         post_build:
           commands:
             - echo "Pushing image to ECR"
@@ -297,6 +300,7 @@ resource "aws_codebuild_project" "app_deploy" {
                   --package-type Image \
                   --code ImageUri=$ECR_REPO:$IMAGE_TAG \
                   --role $LAMBDA_ROLE_ARN \
+                  --architectures arm64 \
                   --description "Compliance report Lambda (POST /report only)" \
                   --timeout 60 \
                   --memory-size 512 \

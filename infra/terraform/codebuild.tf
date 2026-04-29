@@ -346,9 +346,12 @@ resource "aws_iam_role_policy" "codebuild_tf_iam" {
         ]
       },
       {
-        # PassRole: allow CodeBuild to pass the project IAM roles to Bedrock/Lambda/AgentCore services.
-        # bedrock-agentcore.amazonaws.com is required because awscc_bedrockagentcore_runtime
-        # creates a Runtime with role_arn, which triggers a PassRole check to the AgentCore service.
+        # PassRole: allow CodeBuild (Terraform) to pass the project IAM roles to:
+        #   - codebuild.amazonaws.com: required when Terraform creates CodeBuild projects
+        #     (e.g., cob-ci); the project's service_role is passed to the service.
+        #   - bedrock.amazonaws.com / bedrock-agentcore.amazonaws.com: Bedrock and
+        #     AgentCore Runtime execution roles.
+        #   - lambda.amazonaws.com: Lambda execution role.
         Sid    = "IAMPassRoleToServices"
         Effect = "Allow"
         Action = ["iam:PassRole"]
@@ -361,6 +364,7 @@ resource "aws_iam_role_policy" "codebuild_tf_iam" {
             "iam:PassedToService" = [
               "bedrock.amazonaws.com",
               "bedrock-agentcore.amazonaws.com",
+              "codebuild.amazonaws.com",
               "lambda.amazonaws.com"
             ]
           }

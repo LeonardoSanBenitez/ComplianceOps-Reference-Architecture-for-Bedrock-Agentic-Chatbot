@@ -1,12 +1,17 @@
-# compliance-ops-bedrock — Lambda container image for the chat endpoint
+# compliance-ops-bedrock — Lambda/AgentCore container image
 #
-# Uses the AWS-provided Lambda Python 3.11 base image.
-# The handler entry point is app.handler.handler (module.file.function).
+# Uses the AWS-provided Lambda Python 3.12 base image for arm64.
+# The arm64 architecture is required by Bedrock AgentCore Runtime and also
+# provides Lambda Graviton2 cost/performance benefits.
 #
-# Build context: repository root (docker build -t <tag> -f app/Dockerfile .)
+# Entry points:
+#   - Lambda: app.handler.handler  (POST /report)
+#   - AgentCore: app.agentcore_app  (POST /invocations via BedrockAgentCoreApp)
+#
+# Build context: repository root (docker build --platform linux/arm64 -f app/Dockerfile .)
 # so that the app/ package is available at /var/task/app/.
 
-FROM public.ecr.aws/lambda/python:3.11
+FROM public.ecr.aws/lambda/python:3.12-arm64
 
 # Install runtime dependencies.
 # compliance-trestle and other heavy dev deps are NOT included here.
