@@ -12,22 +12,25 @@
 # Deployment model:
 #   - Container image from the same ECR repo as the Lambda function.
 #   - Public network mode (demo; switch to VPC for production).
-#   - A single endpoint "default" is created to expose the runtime.
 #
 # Invocation (AgentCore Runtime):
 #   POST https://bedrock-agentcore.<region>.amazonaws.com/runtimes/<id>/invocations
 #   Body: {"prompt": "<message>", "session_id": "<uuid>"}
 #   Auth: SigV4 (unlike the Lambda Function URL which is public)
 #
-# Provider note: awscc (CloudControl API) is used here because
-# aws_bedrockagentcore_agent_runtime in the native hashicorp/aws provider
-# has open issues around resource deletion (dangling ENIs) as of early 2026.
-# Both providers produce identical CloudFormation calls under the hood.
-# Re-evaluate when hashicorp/aws stabilises these resources.
+# Provider note: this file uses the native hashicorp/aws provider resource
+# aws_bedrockagentcore_agent_runtime (available from v6.18.0).  The awscc
+# Cloud Control API approach was evaluated but rejected because
+# AWS::BedrockAgentCore::AgentRuntime is not yet registered as a public
+# CloudFormation type in us-east-1.
+#
+# Known issue: aws_bedrockagentcore_agent_runtime can leave dangling ENIs on
+# destroy when using VPC network mode.  This deployment uses PUBLIC mode so
+# no ENIs are created and the issue does not apply.
 #
 # References:
 #   https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html
-#   https://registry.terraform.io/providers/hashicorp/awscc/1.60.0/docs/resources/bedrockagentcore_runtime
+#   https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/bedrockagentcore_agent_runtime
 
 locals {
   agentcore_runtime_name = "${var.project_name}-runtime-${var.environment}"
@@ -187,7 +190,7 @@ resource "aws_iam_role_policy" "agentcore_bedrock" {
 
 # ── AgentCore Runtime resource ─────────────────────────────────────────────────
 
-resource "awscc_bedrockagentcore_runtime" "main" {
+resource "aws_bedrockagentcore_agent_runtime" "main" {
   agent_runtime_name = local.agentcore_runtime_name
   description        = "Compliance chatbot runtime (Strands + Nova Micro, AgentCore)"
   role_arn           = aws_iam_role.agentcore_runtime.arn
@@ -219,31 +222,14 @@ resource "awscc_bedrockagentcore_runtime" "main" {
   ]
 }
 
-# ── AgentCore Runtime Endpoint ─────────────────────────────────────────────────
-#
-# An endpoint exposes the runtime for invocation.  A single "default" endpoint
-# is created here.  Additional endpoints can be used for A/B testing or
-# canary deployments by varying agent_runtime_version.
-
-resource "awscc_bedrockagentcore_runtime_endpoint" "default" {
-  name             = "${local.agentcore_runtime_name}-endpoint"
-  agent_runtime_id = awscc_bedrockagentcore_runtime.main.agent_runtime_id
-  description      = "Default endpoint for compliance chatbot AgentCore runtime"
-}
-
 # ── Outputs ────────────────────────────────────────────────────────────────────
 
 output "agentcore_runtime_arn" {
   description = "ARN of the Bedrock AgentCore Runtime"
-  value       = awscc_bedrockagentcore_runtime.main.agent_runtime_arn
+  value       = aws_bedrockagentcore_agent_runtime.main.agent_runtime_arn
 }
 
 output "agentcore_runtime_id" {
   description = "ID of the Bedrock AgentCore Runtime (used in invocation URLs)"
-  value       = awscc_bedrockagentcore_runtime.main.agent_runtime_id
-}
-
-output "agentcore_endpoint_arn" {
-  description = "ARN of the default AgentCore Runtime Endpoint"
-  value       = awscc_bedrockagentcore_runtime_endpoint.default.agent_runtime_endpoint_arn
+  value       = aws_bedrockagentcore_agent_runtime.main.agent_runtime_id
 }

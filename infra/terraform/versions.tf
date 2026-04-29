@@ -3,12 +3,10 @@ terraform {
 
   required_providers {
     aws = {
+      # >= 6.27.0: S3 Vectors support for Bedrock KB
+      # >= 6.18.0: aws_bedrockagentcore_agent_runtime native support
       source  = "hashicorp/aws"
-      version = ">= 6.27.0"  # S3 Vectors support for Bedrock KB added in v6.27.0
-    }
-    awscc = {
-      source  = "hashicorp/awscc"
-      version = "~> 1.60"  # AgentCore Runtime resources added in awscc 1.60
+      version = ">= 6.27.0"
     }
   }
 
@@ -34,10 +32,4 @@ provider "aws" {
       Environment = var.environment
     }
   }
-}
-
-# awscc provider — required for awscc_bedrockagentcore_runtime resources.
-# Uses the same region and credentials as the aws provider above.
-provider "awscc" {
-  region = var.aws_region
 }

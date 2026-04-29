@@ -937,42 +937,6 @@ resource "aws_codebuild_webhook" "ci_push" {
   }
 }
 
-# Cloud Control API: required by the awscc Terraform provider to manage resources
-# that do not yet have native support in the hashicorp/aws provider (e.g.,
-# awscc_bedrockagentcore_runtime, awscc_bedrockagentcore_runtime_endpoint).
-# The awscc provider calls cloudformation:GetResource, CreateResource, UpdateResource,
-# and DeleteResource on the caller's behalf.  Without these permissions terraform apply
-# will fail with AccessDeniedException when the awscc provider makes Cloud Control calls.
-resource "aws_iam_role_policy" "codebuild_tf_cloudcontrol" {
-  name = "cloudcontrol-awscc"
-  role = aws_iam_role.codebuild_tf.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "CloudControlAPIForAWSCC"
-        Effect = "Allow"
-        Action = [
-          "cloudformation:CreateResource",
-          "cloudformation:DeleteResource",
-          "cloudformation:GetResource",
-          "cloudformation:GetResourceRequestStatus",
-          "cloudformation:ListResourceRequests",
-          "cloudformation:ListResources",
-          "cloudformation:UpdateResource"
-        ]
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "aws:RequestedRegion" = var.aws_region
-          }
-        }
-      }
-    ]
-  })
-}
-
 # Permission: update the AgentCore Runtime with a new container image on each
 # app deploy.  Scoped to runtimes in this project's name prefix.
 resource "aws_iam_role_policy" "codebuild_tf_agentcore" {

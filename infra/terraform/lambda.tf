@@ -251,7 +251,7 @@ resource "aws_codebuild_project" "app_deploy" {
     }
     environment_variable {
       name  = "AGENTCORE_RUNTIME_ID"
-      value = awscc_bedrockagentcore_runtime.main.agent_runtime_id
+      value = aws_bedrockagentcore_agent_runtime.main.agent_runtime_id
     }
     environment_variable {
       name  = "AGENTCORE_ROLE_ARN"
