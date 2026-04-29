@@ -33,7 +33,10 @@
 #   https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/bedrockagentcore_agent_runtime
 
 locals {
-  agentcore_runtime_name = "${var.project_name}-runtime-${var.environment}"
+  # agent_runtime_name must match ^[a-zA-Z][a-zA-Z0-9_]{0,47}$ — no hyphens.
+  # Replace hyphens with underscores for the AgentCore name while keeping the
+  # kebab-case convention everywhere else in the project.
+  agentcore_runtime_name = replace("${var.project_name}_runtime_${var.environment}", "-", "_")
 }
 
 # ── IAM role: AgentCore Runtime execution ─────────────────────────────────────
