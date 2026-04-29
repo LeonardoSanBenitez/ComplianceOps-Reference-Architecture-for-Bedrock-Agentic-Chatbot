@@ -380,18 +380,22 @@ resource "aws_iam_role_policy" "codebuild_tf_iam" {
         ]
       },
       {
-        # CreateAgentRuntime triggers an internal CreateServiceLinkedRole call for
-        # AWSServiceRoleForAmazonBedrockAgentCore.  Without this the apply fails with:
-        # "AccessDeniedException: Failed creating service linked role."
+        # CreateAgentRuntime triggers CreateServiceLinkedRole for one or more AgentCore SLRs:
+        #   - runtime-identity.bedrock-agentcore.amazonaws.com (AWSServiceRoleForBedrockAgentCoreRuntimeIdentity)
+        #   - network.bedrock-agentcore.amazonaws.com          (AWSServiceRoleForBedrockAgentCoreNetwork, VPC only)
+        #   - bedrock-agentcore.amazonaws.com                  (AWSServiceRoleForBedrockAgentCoreGatewayNetwork)
+        #   - identity-network.bedrock-agentcore.amazonaws.com (AWSServiceRoleForBedrockAgentCoreIdentity)
+        # Use StringLike with wildcard to cover all sub-domains rather than enumerating each.
         Sid    = "IAMCreateServiceLinkedRole"
         Effect = "Allow"
         Action = ["iam:CreateServiceLinkedRole"]
         Resource = [
-          "arn:aws:iam::${var.aws_account_id}:role/aws-service-role/bedrock-agentcore.amazonaws.com/*"
+          "arn:aws:iam::*:role/aws-service-role/*.bedrock-agentcore.amazonaws.com/*",
+          "arn:aws:iam::*:role/aws-service-role/bedrock-agentcore.amazonaws.com/*"
         ]
         Condition = {
-          StringEquals = {
-            "iam:AWSServiceName" = "bedrock-agentcore.amazonaws.com"
+          StringLike = {
+            "iam:AWSServiceName" = "*.bedrock-agentcore.amazonaws.com"
           }
         }
       }
