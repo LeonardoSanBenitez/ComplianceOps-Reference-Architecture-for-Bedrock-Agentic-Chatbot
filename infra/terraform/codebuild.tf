@@ -373,7 +373,9 @@ resource "aws_iam_role_policy" "codebuild_tf_iam" {
         ]
       },
       {
-        # PassRole: allow CodeBuild to pass the project IAM roles to Bedrock/Lambda services.
+        # PassRole: allow CodeBuild to pass the project IAM roles to Bedrock/Lambda/AgentCore services.
+        # bedrock-agentcore.amazonaws.com is required because awscc_bedrockagentcore_runtime
+        # creates a Runtime with role_arn, which triggers a PassRole check to the AgentCore service.
         Sid    = "IAMPassRoleToServices"
         Effect = "Allow"
         Action = ["iam:PassRole"]
@@ -385,6 +387,7 @@ resource "aws_iam_role_policy" "codebuild_tf_iam" {
           StringEquals = {
             "iam:PassedToService" = [
               "bedrock.amazonaws.com",
+              "bedrock-agentcore.amazonaws.com",
               "lambda.amazonaws.com"
             ]
           }
@@ -403,7 +406,12 @@ resource "aws_iam_role_policy" "codebuild_tf_iam" {
   })
 }
 
-# Bedrock / BedrockAgent: manage knowledge bases, agents, data sources, aliases.
+# Bedrock / BedrockAgent / BedrockAgentCore: manage knowledge bases, agents, data sources,
+# aliases, and AgentCore Runtimes.
+# The awscc provider (used for awscc_bedrockagentcore_runtime resources) routes API calls
+# through Cloud Control API, which internally calls bedrock-agentcore:* actions on behalf
+# of the caller.  The bedrock-agentcore:* permissions here must therefore be granted to
+# the CodeBuild execution role, not only to the runtime execution role.
 resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
   name = "bedrock-manage"
   role = aws_iam_role.codebuild_tf.id
@@ -478,12 +486,40 @@ resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
           "arn:aws:bedrock:${var.aws_region}:${var.aws_account_id}:agent/*",
           "arn:aws:bedrock:${var.aws_region}:${var.aws_account_id}:agent-alias/*"
         ]
+      },
+      {
+        # Manage AgentCore Runtimes and Endpoints via the bedrock-agentcore service API.
+        # The awscc Terraform provider calls these actions through Cloud Control API.
+        # PassRole for the agentcore execution role is handled in the IAMPassRoleToServices
+        # statement in the iam-project-roles policy.
+        Sid    = "AgentCoreRuntimeManage"
+        Effect = "Allow"
+        Action = [
+          "bedrock-agentcore:CreateAgentRuntime",
+          "bedrock-agentcore:DeleteAgentRuntime",
+          "bedrock-agentcore:GetAgentRuntime",
+          "bedrock-agentcore:ListAgentRuntimes",
+          "bedrock-agentcore:ListAgentRuntimeVersions",
+          "bedrock-agentcore:UpdateAgentRuntime",
+          "bedrock-agentcore:CreateAgentRuntimeEndpoint",
+          "bedrock-agentcore:DeleteAgentRuntimeEndpoint",
+          "bedrock-agentcore:GetAgentRuntimeEndpoint",
+          "bedrock-agentcore:ListAgentRuntimeEndpoints",
+          "bedrock-agentcore:UpdateAgentRuntimeEndpoint",
+          "bedrock-agentcore:TagResource",
+          "bedrock-agentcore:UntagResource",
+          "bedrock-agentcore:ListTagsForResource"
+        ]
+        Resource = "*"
       }
     ]
   })
 }
 
-# CodeBuild: allow the role to report build status back and read its own project config.
+# CodeBuild: allow the role to manage project lifecycle and report build status.
+# CreateProject/DeleteProject are needed because Terraform (tf-apply) provisions
+# the cob-ci and other CodeBuild projects; the execution role must have these
+# permissions or the apply will fail with AccessDeniedException on CreateProject.
 # BatchGetProjects is required by the Terraform aws_codebuild_project data source reads
 # that occur during terraform plan/apply when the provider refreshes existing resources.
 resource "aws_iam_role_policy" "codebuild_tf_self" {
@@ -494,16 +530,19 @@ resource "aws_iam_role_policy" "codebuild_tf_self" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "CodeBuildReadAndStatus"
+        Sid    = "CodeBuildManageProjects"
         Effect = "Allow"
         Action = [
           "codebuild:BatchGetBuilds",
           "codebuild:BatchGetProjects",
+          "codebuild:CreateProject",
           "codebuild:CreateWebhook",
+          "codebuild:DeleteProject",
           "codebuild:DeleteWebhook",
           "codebuild:GetResourcePolicy",
           "codebuild:ListBuildsForProject",
           "codebuild:ListProjects",
+          "codebuild:UpdateProject",
           "codebuild:UpdateWebhook"
         ]
         Resource = [
@@ -896,6 +935,67 @@ resource "aws_codebuild_webhook" "ci_push" {
       pattern = "PUSH"
     }
   }
+}
+
+# Cloud Control API: required by the awscc Terraform provider to manage resources
+# that do not yet have native support in the hashicorp/aws provider (e.g.,
+# awscc_bedrockagentcore_runtime, awscc_bedrockagentcore_runtime_endpoint).
+# The awscc provider calls cloudformation:GetResource, CreateResource, UpdateResource,
+# and DeleteResource on the caller's behalf.  Without these permissions terraform apply
+# will fail with AccessDeniedException when the awscc provider makes Cloud Control calls.
+resource "aws_iam_role_policy" "codebuild_tf_cloudcontrol" {
+  name = "cloudcontrol-awscc"
+  role = aws_iam_role.codebuild_tf.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "CloudControlAPIForAWSCC"
+        Effect = "Allow"
+        Action = [
+          "cloudformation:CreateResource",
+          "cloudformation:DeleteResource",
+          "cloudformation:GetResource",
+          "cloudformation:GetResourceRequestStatus",
+          "cloudformation:ListResourceRequests",
+          "cloudformation:ListResources",
+          "cloudformation:UpdateResource"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:RequestedRegion" = var.aws_region
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Permission: update the AgentCore Runtime with a new container image on each
+# app deploy.  Scoped to runtimes in this project's name prefix.
+resource "aws_iam_role_policy" "codebuild_tf_agentcore" {
+  name = "agentcore-runtime-update"
+  role = aws_iam_role.codebuild_tf.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "UpdateAgentCoreRuntime"
+        Effect = "Allow"
+        Action = [
+          "bedrock-agentcore:UpdateAgentRuntime",
+          "bedrock-agentcore:GetAgentRuntime",
+          "bedrock-agentcore:ListAgentRuntimes",
+        ]
+        Resource = [
+          "arn:aws:bedrock-agentcore:${var.aws_region}:${var.aws_account_id}:runtime/${var.project_name}-*"
+        ]
+      }
+    ]
+  })
 }
 
 # ── Outputs ────────────────────────────────────────────────────────────────────

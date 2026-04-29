@@ -249,6 +249,14 @@ resource "aws_codebuild_project" "app_deploy" {
       name  = "REPORT_BUCKET"
       value = local.report_bucket_name
     }
+    environment_variable {
+      name  = "AGENTCORE_RUNTIME_ID"
+      value = awscc_bedrockagentcore_runtime.main.agent_runtime_id
+    }
+    environment_variable {
+      name  = "AGENTCORE_ROLE_ARN"
+      value = aws_iam_role.agentcore_runtime.arn
+    }
   }
 
   source {
@@ -289,7 +297,7 @@ resource "aws_codebuild_project" "app_deploy" {
                   --package-type Image \
                   --code ImageUri=$ECR_REPO:$IMAGE_TAG \
                   --role $LAMBDA_ROLE_ARN \
-                  --description "Compliance chatbot Lambda (Strands + Bedrock Nova Micro)" \
+                  --description "Compliance report Lambda (POST /report only)" \
                   --timeout 60 \
                   --memory-size 512 \
                   --environment "Variables={KNOWLEDGE_BASE_ID=$KNOWLEDGE_BASE_ID,AGENT_MODEL_ID=$AGENT_MODEL_ID,CORS_ORIGIN=*,LOG_LEVEL=INFO,DYNAMODB_TABLE=$DYNAMODB_TABLE,CONV_LOG_BUCKET=$CONV_LOG_BUCKET,RETENTION_DAYS=$RETENTION_DAYS,REPORT_BUCKET=$REPORT_BUCKET}" \
@@ -322,6 +330,15 @@ resource "aws_codebuild_project" "app_deploy" {
                   --region $AWS_DEFAULT_REGION \
                   --no-cli-pager || echo "Permission may already exist"
               fi
+            - |
+              echo "Updating AgentCore Runtime $AGENTCORE_RUNTIME_ID with new image $ECR_REPO:$IMAGE_TAG"
+              aws bedrock-agentcore-control update-agent-runtime \
+                --agent-runtime-id "$AGENTCORE_RUNTIME_ID" \
+                --agent-runtime-artifact "{\"containerConfiguration\":{\"containerUri\":\"$ECR_REPO:$IMAGE_TAG\"}}" \
+                --role-arn "$AGENTCORE_ROLE_ARN" \
+                --network-configuration '{"networkMode":"PUBLIC"}' \
+                --region $AWS_DEFAULT_REGION \
+                --no-cli-pager
             - echo "Deploy complete. Image tag $IMAGE_TAG"
             - aws lambda get-function-url-config --function-name $LAMBDA_FUNCTION_NAME --region $AWS_DEFAULT_REGION --no-cli-pager || true
     BUILDSPEC

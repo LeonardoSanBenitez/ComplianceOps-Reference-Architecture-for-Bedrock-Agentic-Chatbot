@@ -11,7 +11,8 @@ This repository is a blueprint, not a production system. It demonstrates by exam
 ## What this repository includes
 
 - Infrastructure-as-code (Terraform) for all deployed AWS resources
-- A working agentic chat endpoint (Strands SDK + Lambda + Bedrock Nova Micro)
+- A working agentic chat endpoint deployed to Amazon Bedrock AgentCore Runtime (Strands SDK + Nova Micro)
+- Compliance report Lambda endpoint (POST /report) for deterministic static report generation
 - RAG over compliance documentation via Bedrock Knowledge Base
 - OSCAL-based control catalogs for GDPR and EU AI Act
 - Manual attestations with prose justifications for all 20 defined controls
@@ -59,21 +60,32 @@ This repository is not useful for reading — it is useful for forking, adapting
 
 ### Application layer
 
-The chatbot endpoint is a Docker container deployed as an AWS Lambda function with a public Lambda Function URL.
+The application has two runtime components that share the same container image:
+
+**Chat endpoint — Amazon Bedrock AgentCore Runtime:**
 
 ```
-User → Lambda Function URL → Strands Agent (Nova Micro) → Bedrock Knowledge Base
-                                        ↓
-                              GDPR / EU AI Act tools
+Caller (SigV4) → AgentCore Runtime → Strands Agent (Nova Micro) → Bedrock Knowledge Base
+                                                  ↓
+                                        GDPR / EU AI Act tools
+```
+
+**Report endpoint — AWS Lambda Function URL:**
+
+```
+Caller (public) → Lambda Function URL (POST /report) → generate HTML → S3 report bucket
 ```
 
 Components:
 
 - **Model**: Amazon Nova Micro (`amazon.nova-micro-v1:0`) — lowest-cost on-demand text model
 - **Orchestration**: [Strands SDK](https://github.com/strands-ai/strands) — lightweight Python agent framework (open-source project, AWS-originated but not an AWS managed service; evaluate its maturity and support model before adopting in a production system)
+- **AgentCore Runtime**: `app/agentcore_app.py` — wraps the Strands agent with `BedrockAgentCoreApp`; handles all chat invocations. Deployed to AWS-managed container infrastructure; authentication is SigV4 (not public)
 - **RAG**: Bedrock Knowledge Base backed by S3 Vectors — documents (README, OSCAL catalogs, IRP-001, attestations) are chunked and indexed for semantic retrieval
 - **Tools**: `retrieve_compliance_info`, `list_gdpr_controls`, `list_eu_ai_act_controls` — Strands tools that query the Knowledge Base
-- **Handler**: `app/handler.py` — Lambda entry point; parses request, invokes agent, returns JSON response with EU AI Act Art. 50 disclosure headers (see the EU AI Act Art. 50 Transparency Disclosure section below)
+- **Lambda handler**: `app/handler.py` — handles POST /report only; generates and uploads the static HTML compliance report. The chatbot route (POST /) has been removed
+
+The same container image is used by both the Lambda function and the AgentCore Runtime. `CMD` in the Dockerfile points to the Lambda handler; AgentCore overrides the entry point to `python -m app.agentcore_app` at runtime.
 
 ### Compliance layer
 
@@ -96,8 +108,10 @@ All infrastructure is managed by Terraform (`infra/terraform/`).
 
 | Resource | Purpose |
 |----------|---------|
-| ECR repository | Stores Lambda container images |
-| Lambda function | Chat endpoint (created by `cob-app-deploy` CodeBuild on first run) |
+| ECR repository | Stores container images for both Lambda and AgentCore Runtime |
+| Lambda function | Report endpoint only — POST /report (created by `cob-app-deploy`) |
+| AgentCore Runtime | Chat endpoint — managed container runtime (Terraform `agentcore.tf`) |
+| AgentCore Runtime Endpoint | Default endpoint for invoking the chat runtime |
 | Bedrock Knowledge Base | RAG index (S3 Vectors backend) |
 | S3 — KB source | Compliance documents for KB ingestion |
 | S3 — Conversation logs | Conversation log storage (30-day retention) |
@@ -106,9 +120,9 @@ All infrastructure is managed by Terraform (`infra/terraform/`).
 | KMS | Encryption at rest for all persistent data |
 | CodeBuild — `cob-tf-plan` | Terraform plan, triggered on PR open/update |
 | CodeBuild — `cob-tf-apply` | Terraform apply, manually triggered |
-| CodeBuild — `cob-app-deploy` | Docker build + Lambda deploy, manually triggered |
+| CodeBuild — `cob-app-deploy` | Docker build + Lambda deploy + AgentCore Runtime update, manually triggered |
 
-The Lambda function is not managed by Terraform because Terraform cannot provision a Lambda container without an existing ECR image. The function is created on first run of `cob-app-deploy` and updated on subsequent runs.
+The Lambda function is not managed by Terraform because Terraform cannot provision a Lambda container without an existing ECR image. The function is created on first run of `cob-app-deploy` and updated on subsequent runs. The AgentCore Runtime is managed by Terraform (`agentcore.tf`) and references the ECR image by tag.
 
 ### CI/CD
 
@@ -176,11 +190,27 @@ aws lambda get-function-url-config --function-name cob-chat-dev
 
 ### Invoke the chatbot
 
+The chatbot is now served by the AgentCore Runtime, not the Lambda Function URL.
+Authentication is SigV4 (AWS credentials required).
+
 ```bash
-curl -X POST <FUNCTION_URL> \
-  -H "Content-Type: application/json" \
-  -d '{"message": "What GDPR controls are implemented for this system?"}'
+# Retrieve the runtime ID from Terraform output:
+RUNTIME_ID=$(cd infra/terraform && terraform output -raw agentcore_runtime_id)
+REGION=us-east-1
+
+aws bedrock-agentcore invoke-agent-runtime \
+  --agent-runtime-id "$RUNTIME_ID" \
+  --region "$REGION" \
+  --body '{"prompt": "What GDPR controls are implemented for this system?"}' \
+  --cli-binary-format raw-in-base64-out \
+  output.json
+cat output.json
 ```
+
+> Note: `invoke-agent-runtime` is an AWS CLI command available in the `bedrock-agentcore` service namespace.
+> The response contains `{"response": "...", "session_id": "...", "ai_disclosure": "..."}`.
+
+The Lambda Function URL (public) still accepts POST /report but no longer handles chat.
 
 ### Publish the compliance report
 
@@ -215,7 +245,7 @@ Every response from this chatbot:
 - Includes an `ai_disclosure` field in the JSON response body identifying the system as AI-generated and noting that responses are not legal advice
 - Is generated by a system prompt that instructs the model to identify itself as an AI when asked
 
-These disclosures are implemented in `app/handler.py`. Any deployment of this reference architecture must preserve or strengthen them to remain within Art. 50(1) compliance.
+These disclosures are implemented in `app/agentcore_app.py` (chat responses) and `app/handler.py` (report endpoint headers). Any deployment of this reference architecture must preserve or strengthen them to remain within Art. 50(1) compliance.
 
 ## Compliance scope
 
@@ -242,7 +272,13 @@ Full breakdown: [COST.md](COST.md).
 
 ```
 compliance-ops-bedrock/
-├── app/                    # Lambda application (Strands agent, handler, tools)
+├── app/
+│   ├── agent.py            # Strands agent singleton (model + tools)
+│   ├── agentcore_app.py    # AgentCore Runtime entry point (BedrockAgentCoreApp)
+│   ├── handler.py          # Lambda handler (POST /report only)
+│   ├── tools.py            # Strands tools (KB retrieve, catalog list)
+│   ├── Dockerfile          # Container image for both Lambda and AgentCore Runtime
+│   └── requirements-lambda.txt
 ├── attestations/           # OSCAL-linked prose attestations for all controls
 ├── compliance/
 │   ├── catalogs/           # OSCAL YAML control catalogs (GDPR, EU AI Act)
@@ -251,6 +287,7 @@ compliance-ops-bedrock/
 │   └── automated/          # Evidence artifacts from collect_evidence.py
 ├── infra/
 │   └── terraform/          # All infrastructure definitions (buildspecs are inline in codebuild.tf)
+│       └── agentcore.tf    # AgentCore Runtime + Endpoint resources
 ├── report/                 # Output directory for generated compliance report (index.html created at runtime)
 ├── scripts/                # Evidence collection and report generation scripts
 ├── COST.md                 # Cost estimate

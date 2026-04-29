@@ -294,6 +294,18 @@ resource "aws_iam_role_policy" "lambda_bedrock_kb" {
         Effect = "Allow"
         Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
         Resource = [local.agent_model_arn]
+      },
+      {
+        # Allow the Lambda /report endpoint to invoke the AgentCore runtime
+        # for compliance checks if needed in future integrations.
+        # Also satisfies the agentcore:InvokeAgentRuntime permission that
+        # callers need to invoke an AgentCore Runtime endpoint.
+        Sid    = "AgentCoreInvokeRuntime"
+        Effect = "Allow"
+        Action = ["bedrock-agentcore:InvokeAgentRuntime"]
+        Resource = [
+          "arn:aws:bedrock-agentcore:${var.aws_region}:${var.aws_account_id}:runtime/*"
+        ]
       }
     ]
   })

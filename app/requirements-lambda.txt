@@ -1,6 +1,9 @@
 # Lambda deployment dependencies for compliance-ops-bedrock app layer.
-# These are bundled into the Lambda deployment package.
+# These are bundled into the Lambda deployment package (and the AgentCore Runtime image).
 # Pin versions for reproducibility.
 
 boto3==1.38.0
 strands-agents==1.37.0
+# bedrock-agentcore SDK — required by app/agentcore_app.py.
+# Also used by the AgentCore Runtime, which runs the same container image.
+bedrock-agentcore==1.7.0

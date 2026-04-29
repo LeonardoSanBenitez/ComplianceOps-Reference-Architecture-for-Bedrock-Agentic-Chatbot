@@ -30,5 +30,10 @@ ignore_missing_imports = true
 module = ["strands", "strands.*"]
 ignore_missing_imports = true
 
+# bedrock-agentcore SDK does not ship PEP 561 type stubs
+[[tool.mypy.overrides]]
+module = ["bedrock_agentcore", "bedrock_agentcore.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

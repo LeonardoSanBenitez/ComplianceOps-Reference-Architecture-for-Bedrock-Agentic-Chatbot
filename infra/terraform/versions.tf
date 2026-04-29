@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = ">= 6.27.0"  # S3 Vectors support for Bedrock KB added in v6.27.0
     }
+    awscc = {
+      source  = "hashicorp/awscc"
+      version = "~> 1.60"  # AgentCore Runtime resources added in awscc 1.60
+    }
   }
 
   # State backend: S3 + DynamoDB locking.
@@ -30,4 +34,10 @@ provider "aws" {
       Environment = var.environment
     }
   }
+}
+
+# awscc provider — required for awscc_bedrockagentcore_runtime resources.
+# Uses the same region and credentials as the aws provider above.
+provider "awscc" {
+  region = var.aws_region
 }
