@@ -393,6 +393,9 @@ resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
     Version = "2012-10-17"
     Statement = [
       {
+        # Read foundation model metadata, tag project resources, and invoke
+        # models for Terraform drift-detection (plan).  Model invocation logging
+        # configuration is excluded — not used in this project.
         Sid    = "BedrockAgentManage"
         Effect = "Allow"
         Action = [
@@ -401,9 +404,7 @@ resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
           "bedrock:TagResource",
           "bedrock:UntagResource",
           "bedrock:ListTagsForResource",
-          "bedrock:InvokeModel",
-          "bedrock:GetModelInvocationLoggingConfiguration",
-          "bedrock:PutModelInvocationLoggingConfiguration"
+          "bedrock:InvokeModel"
         ]
         Resource = "*"
       },
@@ -472,7 +473,6 @@ resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
           "bedrock-agentcore:DeleteAgentRuntime",
           "bedrock-agentcore:GetAgentRuntime",
           "bedrock-agentcore:ListAgentRuntimes",
-          "bedrock-agentcore:ListAgentRuntimeVersions",
           "bedrock-agentcore:UpdateAgentRuntime",
           "bedrock-agentcore:CreateAgentRuntimeEndpoint",
           "bedrock-agentcore:DeleteAgentRuntimeEndpoint",
@@ -521,6 +521,66 @@ resource "aws_iam_role_policy" "codebuild_tf_self" {
         Resource = [
           "arn:aws:codebuild:${var.aws_region}:${var.aws_account_id}:project/${var.project_name}-*"
         ]
+      }
+    ]
+  })
+}
+
+# SNS, EventBridge, and Lambda log group management.
+# Originally created manually; now Terraform-managed to prevent config drift.
+# Trimmed to stay within the IAM inline policy size limit (10240 chars total per role).
+# Actions removed to save space: logs:AssociateKmsKey/DisassociateKmsKey,
+# events:EnableRule/DisableRule/TagResource/UntagResource, sns:TagResource/UntagResource.
+# These are not required for Terraform plan/apply state refresh or resource management.
+resource "aws_iam_role_policy" "codebuild_tf_sns_events" {
+  name = "sns-events-logs"
+  role = aws_iam_role.codebuild_tf.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # Required for Lambda function log group state refresh (Terraform provider reads tags).
+        Sid    = "LambdaLogGroupManage"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:DeleteLogGroup",
+          "logs:DescribeLogGroups",
+          "logs:ListTagsForResource",
+          "logs:PutRetentionPolicy"
+        ]
+        Resource = "arn:aws:logs:${var.aws_region}:${var.aws_account_id}:log-group:*"
+      },
+      {
+        Sid    = "SNSManage"
+        Effect = "Allow"
+        Action = [
+          "sns:CreateTopic",
+          "sns:DeleteTopic",
+          "sns:GetTopicAttributes",
+          "sns:GetSubscriptionAttributes",
+          "sns:ListSubscriptionsByTopic",
+          "sns:ListTagsForResource",
+          "sns:SetTopicAttributes",
+          "sns:Subscribe",
+          "sns:Unsubscribe"
+        ]
+        Resource = "arn:aws:sns:${var.aws_region}:${var.aws_account_id}:${var.project_name}-*"
+      },
+      {
+        Sid    = "EventBridgeManage"
+        Effect = "Allow"
+        Action = [
+          "events:DeleteRule",
+          "events:DescribeRule",
+          "events:ListTagsForResource",
+          "events:ListTargetsByRule",
+          "events:PutRule",
+          "events:PutTargets",
+          "events:RemoveTargets"
+        ]
+        Resource = "arn:aws:events:${var.aws_region}:${var.aws_account_id}:rule/${var.project_name}-*"
       }
     ]
   })
