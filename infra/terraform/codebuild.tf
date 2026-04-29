@@ -160,12 +160,7 @@ resource "aws_iam_role_policy" "codebuild_tf_kms" {
           "kms:TagResource",
           "kms:UntagResource",
           "kms:UpdateAlias",
-          "kms:UpdateKeyDescription",
-          "kms:Decrypt",
-          "kms:Encrypt",
-          "kms:GenerateDataKey",
-          "kms:ReEncryptFrom",
-          "kms:ReEncryptTo"
+          "kms:UpdateKeyDescription"
         ]
         Resource = "*"
         Condition = {
@@ -192,10 +187,12 @@ resource "aws_iam_role_policy" "codebuild_tf_s3" {
         Action = [
           "s3:CreateBucket",
           "s3:DeleteBucket",
+          "s3:GetAccelerateConfiguration",
           "s3:GetBucketAcl",
           "s3:GetBucketCORS",
           "s3:GetBucketLocation",
           "s3:GetBucketLogging",
+          "s3:GetBucketNotification",
           "s3:GetBucketObjectLockConfiguration",
           "s3:GetBucketOwnershipControls",
           "s3:GetBucketPolicy",
@@ -207,6 +204,9 @@ resource "aws_iam_role_policy" "codebuild_tf_s3" {
           "s3:GetBucketWebsite",
           "s3:GetEncryptionConfiguration",
           "s3:GetLifecycleConfiguration",
+          "s3:GetInventoryConfiguration",
+          "s3:GetMetricsConfiguration",
+          "s3:GetReplicationConfiguration",
           "s3:ListBucket",
           "s3:ListBucketVersions",
           "s3:PutBucketAcl",
@@ -447,10 +447,6 @@ resource "aws_iam_role_policy" "codebuild_tf_bedrock" {
           "bedrock:GetAgentAlias",
           "bedrock:ListAgentAliases",
           "bedrock:UpdateAgentAlias",
-          "bedrock:CreateAgentVersion",
-          "bedrock:DeleteAgentVersion",
-          "bedrock:GetAgentVersion",
-          "bedrock:ListAgentVersions",
           "bedrock:AssociateAgentKnowledgeBase",
           "bedrock:DisassociateAgentKnowledgeBase",
           "bedrock:GetAgentKnowledgeBase",
