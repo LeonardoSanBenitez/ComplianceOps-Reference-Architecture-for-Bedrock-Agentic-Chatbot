@@ -18,6 +18,7 @@ machine-readable for downstream integrations.
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,15 @@ import boto3
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Ensure the repo root is on sys.path so that the `scripts` package is
+# importable regardless of how the Lambda runtime sets up PYTHONPATH.
+# In the container image, LAMBDA_TASK_ROOT=/var/task and all directories
+# are copied there, but the runtime only guarantees /var/task is in
+# sys.path when the handler module is at the root — not inside a package.
+_TASK_ROOT = Path(__file__).parent.parent  # app/ -> repo root in container
+if str(_TASK_ROOT) not in sys.path:
+    sys.path.insert(0, str(_TASK_ROOT))
 
 # Import report generation functions (no subprocess — runs in-process).
 from scripts.generate_report import (
