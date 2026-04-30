@@ -200,7 +200,11 @@ resource "aws_bedrockagentcore_agent_runtime" "main" {
 
   agent_runtime_artifact {
     container_configuration {
-      container_uri = "${aws_ecr_repository.app.repository_url}:latest"
+      # Use the :agentcore tag which points to the plain-Python uvicorn image
+      # (app/Dockerfile.agentcore).  AgentCore Runtime does NOT use the Lambda
+      # bootstrap protocol; it requires a plain HTTP server on port 8080.
+      # The Lambda function uses :latest (app/Dockerfile, Lambda base image).
+      container_uri = "${aws_ecr_repository.app.repository_url}:agentcore"
     }
   }
 

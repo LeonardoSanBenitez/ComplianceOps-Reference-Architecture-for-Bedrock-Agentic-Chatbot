@@ -1,0 +1,43 @@
+# compliance-ops-bedrock — AgentCore Runtime container image
+#
+# This Dockerfile is specifically for the Amazon Bedrock AgentCore Runtime.
+# AgentCore Runtime does NOT use the Lambda bootstrap protocol; it expects a
+# plain HTTP server on port 8080 that handles POST /invocations.
+#
+# Key differences from app/Dockerfile (Lambda):
+#   - Base image: plain Python arm64 (NOT the Lambda RIC base image)
+#   - CMD: starts uvicorn via BedrockAgentCoreApp.run() on port 8080
+#   - No Lambda handler wiring
+#
+# Build context: repository root
+#   docker build --platform linux/arm64 -t <tag> -f app/Dockerfile.agentcore .
+
+FROM --platform=linux/arm64 python:3.12-slim
+
+# Non-root user for defence-in-depth.
+RUN useradd --create-home --shell /bin/bash appuser
+
+WORKDIR /app
+
+# Install runtime dependencies.
+COPY app/requirements-lambda.txt ./
+RUN pip install --no-cache-dir -r requirements-lambda.txt
+
+# Copy the application package and report-generation assets.
+COPY app/ /app/app/
+COPY scripts/ /app/scripts/
+COPY compliance/ /app/compliance/
+COPY attestations/ /app/attestations/
+COPY evidence/ /app/evidence/
+
+# Ensure the repo root (/app) is on PYTHONPATH so that:
+#   - `from app.agent import agent` works from agentcore_app.py
+#   - `from scripts.generate_report import ...` works from handler.py (if invoked)
+ENV PYTHONPATH=/app
+
+USER appuser
+
+# AgentCore Runtime protocol: HTTP server on port 8080, POST /invocations.
+# BedrockAgentCoreApp.run() starts a Uvicorn server on 0.0.0.0:8080.
+EXPOSE 8080
+CMD ["python", "-m", "app.agentcore_app"]

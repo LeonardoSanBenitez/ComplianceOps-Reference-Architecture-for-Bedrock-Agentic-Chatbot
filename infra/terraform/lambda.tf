@@ -277,13 +277,18 @@ resource "aws_codebuild_project" "app_deploy" {
             - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c1-8)
         build:
           commands:
-            - echo "Building Docker image (arm64 for AgentCore Runtime and Lambda Graviton2)"
+            - echo "Building Lambda image (arm64, Lambda base image)"
             - docker build --platform linux/arm64 -t $ECR_REPO:$IMAGE_TAG -t $ECR_REPO:latest -f app/Dockerfile .
+            - echo "Building AgentCore image (arm64, plain Python base image, uvicorn on port 8080)"
+            - docker build --platform linux/arm64 -t $ECR_REPO:agentcore-$IMAGE_TAG -t $ECR_REPO:agentcore -f app/Dockerfile.agentcore .
         post_build:
           commands:
-            - echo "Pushing image to ECR"
+            - echo "Pushing Lambda image to ECR"
             - docker push $ECR_REPO:$IMAGE_TAG
             - docker push $ECR_REPO:latest
+            - echo "Pushing AgentCore image to ECR"
+            - docker push $ECR_REPO:agentcore-$IMAGE_TAG
+            - docker push $ECR_REPO:agentcore
             - |
               echo "Creating or updating Lambda function $LAMBDA_FUNCTION_NAME"
               if aws lambda get-function --function-name $LAMBDA_FUNCTION_NAME --region $AWS_DEFAULT_REGION > /dev/null 2>&1; then
@@ -335,15 +340,15 @@ resource "aws_codebuild_project" "app_deploy" {
                   --no-cli-pager || echo "Permission may already exist"
               fi
             - |
-              echo "Updating AgentCore Runtime $AGENTCORE_RUNTIME_ID with new image $ECR_REPO:$IMAGE_TAG"
+              echo "Updating AgentCore Runtime $AGENTCORE_RUNTIME_ID with new AgentCore image $ECR_REPO:agentcore-$IMAGE_TAG"
               aws bedrock-agentcore-control update-agent-runtime \
                 --agent-runtime-id "$AGENTCORE_RUNTIME_ID" \
-                --agent-runtime-artifact "{\"containerConfiguration\":{\"containerUri\":\"$ECR_REPO:$IMAGE_TAG\"}}" \
+                --agent-runtime-artifact "{\"containerConfiguration\":{\"containerUri\":\"$ECR_REPO:agentcore-$IMAGE_TAG\"}}" \
                 --role-arn "$AGENTCORE_ROLE_ARN" \
                 --network-configuration '{"networkMode":"PUBLIC"}' \
                 --region $AWS_DEFAULT_REGION \
                 --no-cli-pager
-            - echo "Deploy complete. Image tag $IMAGE_TAG"
+            - echo "Deploy complete. Lambda image tag $IMAGE_TAG, AgentCore image tag agentcore-$IMAGE_TAG"
             - aws lambda get-function-url-config --function-name $LAMBDA_FUNCTION_NAME --region $AWS_DEFAULT_REGION --no-cli-pager || true
     BUILDSPEC
   }
