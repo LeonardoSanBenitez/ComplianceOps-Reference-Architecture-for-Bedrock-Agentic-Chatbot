@@ -36,13 +36,6 @@ _TASK_ROOT = Path(__file__).parent.parent  # app/ -> repo root in container
 if str(_TASK_ROOT) not in sys.path:
     sys.path.insert(0, str(_TASK_ROOT))
 
-# Diagnostic logging at module load time (safe to leave in; output is in
-# CloudWatch Logs and helps diagnose runtime path issues).
-import os as _os
-_task_root_str = str(_TASK_ROOT)
-_task_root_contents = _os.listdir(_task_root_str) if _os.path.isdir(_task_root_str) else ["<not a directory>"]
-print(f"DIAGNOSTIC task_root={_task_root_str!r} contents={_task_root_contents} sys.path={sys.path[:5]}")
-
 # Import report generation functions (no subprocess — runs in-process).
 from scripts.generate_report import (
     assemble_report,
