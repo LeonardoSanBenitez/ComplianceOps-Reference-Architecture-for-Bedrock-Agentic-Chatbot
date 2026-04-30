@@ -18,8 +18,14 @@ FROM public.ecr.aws/lambda/python:3.12-arm64
 COPY app/requirements-lambda.txt ./
 RUN pip install --no-cache-dir -r requirements-lambda.txt
 
-# Copy the application package.
-COPY app/ ${LAMBDA_TASK_ROOT}/app/
+# Copy the application package and report-generation scripts.
+# Use explicit absolute paths rather than ${LAMBDA_TASK_ROOT} to avoid
+# any shell/BuildKit variable-expansion ambiguity.
+COPY app/ /var/task/app/
+COPY scripts/ /var/task/scripts/
+COPY compliance/ /var/task/compliance/
+COPY attestations/ /var/task/attestations/
+COPY evidence/ /var/task/evidence/
 
 # Lambda handler: module path = app.handler, function = handler
 CMD ["app.handler.handler"]
