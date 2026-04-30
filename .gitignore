@@ -212,6 +212,9 @@ infra/terraform/*.tfstate
 infra/terraform/*.tfstate.backup
 infra/terraform/*.tfplan
 
+# Scratch IAM policy files (operational artifacts, not part of reference architecture)
+infra/policies/
+
 # Generated report (not committed — served from S3)
 # Use report/* (not report/) so that report/.gitkeep can be tracked via negation.
 report/*
