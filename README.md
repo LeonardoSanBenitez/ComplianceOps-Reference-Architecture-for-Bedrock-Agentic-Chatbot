@@ -1,7 +1,5 @@
 # ComplianceOps Reference Architecture — Bedrock Chatbot
 
-[![CI](https://github.com/LeonardoSanBenitez/compliance-ops-bedrock/actions/workflows/ci.yml/badge.svg)](https://github.com/LeonardoSanBenitez/compliance-ops-bedrock/actions/workflows/ci.yml)
-
 A reference architecture for building a compliance-aware agentic chatbot on AWS Bedrock.
 Demonstrates RegOps, Compliance-as-Code, and Shift-Left Compliance practices in a single deployable repository.
 
