@@ -359,7 +359,7 @@ compliance-ops-bedrock/
 
 ## Further reading
 
-- `blog/policy-as-code-part4.md` — External analysis of this architecture: its honest assessment of limitations, its contribution to the OSCAL ecosystem gap for GDPR and EU AI Act, and how it compares to other compliance tooling approaches.
+- [Policy-as-Code Is Real Progress, Just Not the Progress You Think](https://medium.com/@lsbenitezpereira/policy-as-code-is-real-progress-just-not-the-progress-you-think-38345bd8b780) — Honest analysis of this architecture: its limitations, its contribution to the OSCAL ecosystem gap for GDPR and EU AI Act, and how it compares to other compliance tooling approaches.
 - [COST.md](COST.md) — Detailed per-service cost breakdown.
 - [compliance/procedures/incident-response.md](compliance/procedures/incident-response.md) — IRP-001: incident response procedure.
 - [compliance/procedures/human-oversight-procedure.md](compliance/procedures/human-oversight-procedure.md) — HOP-001: human oversight procedure (EU AI Act Art. 14).
